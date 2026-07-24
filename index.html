@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toolshed</title>
+<style>
+  :root {
+    --paper: #eef0ec;
+    --paper-line: #d7dcd3;
+    --ink: #16241f;
+    --ink-soft: #4b5a52;
+    --brass: #a9822c;
+    --brass-dim: #cdb87a;
+    --card-bg: #ffffff;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background:
+      linear-gradient(var(--paper-line) 1px, transparent 1px) 0 0 / 100% 32px,
+      var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    min-height: 100%;
+  }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 72px 24px 96px;
+  }
+
+  header {
+    margin-bottom: 56px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-size: clamp(2.4rem, 5vw, 3.4rem);
+    line-height: 1.05;
+    margin: 0 0 16px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+
+  .lede {
+    max-width: 52ch;
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  .shelf {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--paper-line);
+  }
+
+  .tool {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    align-items: center;
+    gap: 20px;
+    padding: 26px 4px;
+    border-bottom: 1px solid var(--paper-line);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s ease, padding-left 0.15s ease;
+  }
+
+  .tool:hover {
+    background: var(--card-bg);
+    padding-left: 12px;
+  }
+
+  .tool:hover .go {
+    color: var(--brass);
+    transform: translateX(3px);
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--brass-dim);
+    border: 1px solid var(--brass-dim);
+    border-radius: 3px;
+    padding: 5px 0;
+    text-align: center;
+    letter-spacing: 0.03em;
+  }
+
+  .meta h2 {
+    font-size: 1.15rem;
+    margin: 0 0 4px;
+    font-weight: 600;
+  }
+
+  .meta p {
+    margin: 0;
+    font-size: 0.94rem;
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+
+  .go {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+
+  .empty {
+    padding: 40px 4px;
+    color: var(--ink-soft);
+    font-style: italic;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  footer {
+    margin-top: 48px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 560px) {
+    .tool {
+      grid-template-columns: 48px 1fr;
+      row-gap: 6px;
+    }
+    .go { grid-column: 2; justify-self: start; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">// personal toolshed</p>
+      <h1>A few things<br>I built.</h1>
+      <p class="lede">Small tools, each one solving a specific problem. Pick one up, use it, put it back.</p>
+    </header>
+
+    <div class="shelf" id="shelf"></div>
+
+    <footer>maintained by hand · updated as new tools are added</footer>
+  </div>
+
+<script>
+  // ---------------------------------------------------------------
+  // EDIT THIS LIST when you add or remove a tool.
+  // file: the path to the html file in this repo (e.g. "budget-calculator.html"
+  //        or "budget-calculator/" if you used a subfolder with its own index.html)
+  // name: what shows as the title
+  // desc: one short sentence describing what it does
+  // ---------------------------------------------------------------
+  const TOOLS = [
+    {
+      file: "eoy-donor-summary-letter.html",
+      name: "EOY Donor Summary Letter",
+      desc: "Produce end-of-year giving summary letters for donors."
+    },
+    {
+      file: "Sacrament_Certificate_Tool.html",
+      name: "Sacrament Certificate Tool",
+      desc: "Create printable certificates for sacraments."
+    },
+    {
+      file: "Preschool_Tuition_Statement.html",
+      name: "Preschool Tuition Statement",
+      desc: "Generate a tuition statement for preschool families."
+    }
+  ];
+
+  const shelf = document.getElementById('shelf');
+
+  if (TOOLS.length === 0) {
+    shelf.innerHTML = '<div class="empty">No tools listed yet — edit the TOOLS array in index.html.</div>';
+  } else {
+    TOOLS.forEach((tool, i) => {
+      const a = document.createElement('a');
+      a.className = 'tool';
+      a.href = tool.file;
+
+      const num = String(i + 1).padStart(2, '0');
+
+      a.innerHTML = `
+        <span class="tag">${num}</span>
+        <span class="meta">
+          <h2>${tool.name}</h2>
+          <p>${tool.desc}</p>
+        </span>
+        <span class="go">open &rarr;</span>
+      `;
+      shelf.appendChild(a);
+    });
+  }
+</script>
+</body>
+</html>
