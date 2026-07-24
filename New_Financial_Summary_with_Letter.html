@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>End of Year Donor Substantiation Letter Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f4f4f2; color: #111; min-height: 100vh; }
+
+  .hdr { background: #111; color: #fff; padding: 22px 36px; }
+  .hdr h1 { font-family: 'Libre Baskerville', Georgia, serif; font-size: 20px; font-weight: 700; }
+  .hdr p { font-size: 12px; color: #999; margin-top: 4px; }
+
+  .stepper { background: #1a1a1a; display: flex; padding: 0 36px; border-bottom: 1px solid #333; }
+  .step-tab { flex: 1; padding: 13px 6px; text-align: center; font-size: 11.5px; font-weight: 500;
+    color: #666; cursor: default; border-bottom: 2px solid transparent; letter-spacing: 0.3px;
+    transition: all 0.15s; white-space: nowrap; }
+  .step-tab.done { color: #aaa; cursor: pointer; }
+  .step-tab.done:hover { color: #fff; }
+  .step-tab.active { color: #fff; border-bottom-color: #fff; }
+
+  .main { max-width: 840px; margin: 32px auto; padding: 0 20px 60px; }
+  .card { background: #fff; border-radius: 8px; border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06); padding: 34px 38px 28px; }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .step-title { font-family: 'Libre Baskerville', Georgia, serif; font-size: 21px; margin-bottom: 5px; }
+  .step-desc { font-size: 13px; color: #666; margin-bottom: 26px; line-height: 1.6; }
+
+  .field-label { display: block; font-size: 11.5px; font-weight: 600; color: #333;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .form-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+
+  input, select, textarea {
+    font-family: 'Inter', sans-serif; font-size: 13.5px; padding: 8px 11px;
+    border: 1.5px solid #d0d0d0; border-radius: 5px; background: #fafafa; color: #111;
+    outline: none; transition: border-color 0.15s; width: 100%; }
+  input:focus, select:focus, textarea:focus { border-color: #111; background: #fff; }
+  textarea { resize: vertical; line-height: 1.7; font-size: 13px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  .upload-zone { border: 2px dashed #ccc; border-radius: 6px; padding: 28px 16px;
+    text-align: center; background: #fafafa; margin-top: 6px; }
+  .upload-btn { display: inline-block; background: #111; color: #fff; padding: 9px 22px;
+    border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s; border: none; font-family: 'Inter', sans-serif; }
+  .upload-btn:hover { background: #333; }
+  .upload-hint { font-size: 11px; color: #999; margin-top: 7px; }
+
+  .error-box { background: #fff5f5; border: 1px solid #fbb; color: #900;
+    padding: 9px 13px; border-radius: 4px; font-size: 12.5px; margin-top: 10px; }
+  .success-box { background: #f0faf0; border: 1px solid #9d9; color: #2a6a2a;
+    padding: 9px 13px; border-radius: 4px; font-size: 12.5px; margin-top: 10px; }
+  .info-box { background: #f5f5ff; border: 1px solid #bbd; color: #334;
+    padding: 9px 13px; border-radius: 4px; font-size: 12.5px; margin-top: 10px; }
+
+  #logo-preview { max-height: 70px; max-width: 100%; border: 1px solid #ddd;
+    border-radius: 4px; padding: 6px; background: #fafafa; display: none; margin-top: 10px; }
+
+  .preview-wrap { margin-top: 22px; overflow-x: auto; }
+  .preview-label { font-size: 12px; color: #666; margin-bottom: 8px; font-weight: 500; }
+  .preview-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .preview-table th { background: #111; color: #fff; padding: 6px 10px; text-align: left; font-weight: 500; }
+  .preview-table td { padding: 5px 10px; border-bottom: 1px solid #eee; max-width: 200px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preview-table tr:nth-child(even) td { background: #f9f9f9; }
+
+  .insert-hint { text-align: center; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: #888; padding: 10px 0;
+    border-top: 1px dashed #ddd; border-bottom: 1px dashed #ddd; margin: 4px 0 18px; }
+  .note-box { background: #f8f8f6; border-left: 3px solid #111; padding: 13px 16px;
+    font-size: 12.5px; color: #444; line-height: 1.6; margin-top: 6px; border-radius: 0 4px 4px 0; }
+  .note-box strong { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #111; display: block; margin-bottom: 4px; }
+
+  .export-bar { display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+  .donor-pick { display: flex; align-items: center; gap: 10px; }
+  .donor-pick select { width: auto; }
+  .export-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  #letter-preview { width: 100%; height: 900px; border: 1px solid #ccc;
+    border-radius: 6px; background: #fff; display: block; }
+
+  .btn-solid { background: #111; color: #fff; border: none; padding: 9px 20px;
+    border-radius: 4px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 600;
+    cursor: pointer; transition: background 0.15s; }
+  .btn-solid:hover:not(:disabled) { background: #333; }
+  .btn-solid:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-outline { background: #fff; color: #111; border: 1.5px solid #bbb; padding: 9px 20px;
+    border-radius: 4px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; }
+  .btn-outline:hover { border-color: #111; }
+
+  .sql-download-bar { display:flex; justify-content:space-between; align-items:center;
+    background:#f8f8f6; border:1px solid #e0e0d8; border-radius:6px;
+    padding:14px 18px; margin-bottom:24px; gap:16px; flex-wrap:wrap; }
+  .sql-info { display:flex; align-items:flex-start; gap:12px; flex:1; }
+  .sql-icon { font-size:22px; line-height:1; margin-top:2px; }
+  .sql-title { font-size:13px; font-weight:600; color:#111; margin-bottom:3px; }
+  .sql-sub { font-size:12px; color:#666; line-height:1.5; }
+  .sql-btn { white-space:nowrap; }
+  .char-hint { font-size: 10.5px; font-weight: 400; color: #888; text-transform: none;
+    letter-spacing: 0; margin-left: 6px; font-style: italic; }
+  .char-count { font-size: 11px; color: #aaa; text-align: right; margin-top: 3px; }
+  .char-count span.over { color: #c00; font-weight: 600; }
+  .nav-bar { display: flex; justify-content: space-between; margin-top: 26px;
+    padding-top: 18px; border-top: 1px solid #eee; }
+
+  .field-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { background: #f0f0f0; border: 1px solid #ddd; border-radius: 3px;
+    padding: 3px 9px; font-size: 11px; color: #444; font-family: 'Inter', sans-serif; }
+  .chip.found { background: #edfaf0; border-color: #9d9; color: #2a6a2a; }
+  .chip.missing { background: #fff5f5; border-color: #fbb; color: #900; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>End of Year Donor Substantiation Letter Generator</h1>
+  <p>Create personalized tax acknowledgment letters for all your faithful givers</p>
+</div>
+
+<div class="stepper">
+  <div class="step-tab active" id="tab-0">1. Upload &amp; Logo</div>
+  <div class="step-tab" id="tab-1">2. Compose</div>
+  <div class="step-tab" id="tab-2">3. Preview &amp; Export</div>
+</div>
+
+<div class="main">
+  <div class="card">
+
+    <!-- ══ STEP 0: Upload & Logo ══ -->
+    <div class="step active" id="step-0">
+      <h2 class="step-title">Upload Donor File &amp; Logo</h2>
+      <p class="step-desc">Upload your donor CSV. Fields are mapped automatically from the standardized column names. Optionally upload your church logo — it will appear at the top of every letter.</p>
+
+      <div class="sql-download-bar">
+        <div class="sql-info">
+          <span class="sql-icon">&#128451;</span>
+          <div>
+            <div class="sql-title">Need to build your CSV from MinistryPlatform?</div>
+            <div class="sql-sub">Download the SQL view below and run it against your database to generate the correctly formatted export.</div>
+          </div>
+        </div>
+        <button class="btn-outline sql-btn" onclick="downloadSQL()">&#11015; Download SQL View</button>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div class="field-label">Donor CSV File</div>
+          <div class="upload-zone">
+            <input type="file" accept=".csv,.txt" id="csv-input" style="display:none" onchange="handleCSV(this)"/>
+            <label for="csv-input" class="upload-btn">📂 Choose CSV</label>
+            <div class="upload-hint">One row per donor</div>
+          </div>
+          <div id="csv-error" class="error-box" style="display:none"></div>
+          <div id="csv-success" class="success-box" style="display:none"></div>
+          <div id="csv-info" class="info-box" style="display:none"></div>
+        </div>
+        <div>
+          <div class="field-label">Church Logo (optional)</div>
+          <div class="upload-zone">
+            <input type="file" accept="image/*" id="logo-input" style="display:none" onchange="handleLogo(this)"/>
+            <label for="logo-input" class="upload-btn">🖼 Choose Logo</label>
+            <div class="upload-hint">PNG, JPG, or SVG</div>
+          </div>
+          <div style="text-align:center">
+            <img id="logo-preview" alt="Logo preview"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Field detection status -->
+      <div id="field-status" style="display:none; margin-top:20px;">
+        <div class="field-label" style="margin-bottom:8px;">Detected Columns</div>
+        <div class="field-chips" id="field-chips"></div>
+      </div>
+
+      <div id="csv-preview-wrap" class="preview-wrap" style="display:none">
+        <div class="preview-label" id="csv-preview-label"></div>
+        <div style="overflow-x:auto">
+          <table class="preview-table" id="csv-preview-table"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STEP 1: Compose ══ -->
+    <div class="step" id="step-1">
+      <h2 class="step-title">Compose Your Letter</h2>
+      <p class="step-desc">Write the pastor's opening and closing message. The contribution table will be inserted automatically between them.</p>
+
+      <div class="form-row">
+        <label class="field-label" for="letter-body">Opening — Pastor's Message <span class="char-hint">Recommended: 400–600 characters (~3–4 short paragraphs)</span></label>
+        <textarea id="letter-body" rows="8" placeholder="As we reflect on this past year, we are filled with gratitude for your faithful generosity. Your giving has made an eternal impact in our community and beyond..." oninput="updateCount('letter-body','count-body')"></textarea>
+        <div class="char-count"><span id="count-body">0</span> characters</div>
+      </div>
+
+      <div class="insert-hint">↓ Contribution table inserted here automatically ↓</div>
+
+      <div class="form-row">
+        <label class="field-label" for="letter-closing">Closing — Thank You Message <span class="char-hint">Recommended: 200–350 characters (~2 short paragraphs)</span></label>
+        <textarea id="letter-closing" rows="5" placeholder="Thank you for your generosity and faithfulness. Your gifts are not just financial contributions — they are expressions of your love for God and His people." oninput="updateCount('letter-closing','count-closing')"></textarea>
+        <div class="char-count"><span id="count-closing">0</span> characters</div>
+      </div>
+
+      <div class="form-row" style="max-width:380px;">
+        <label class="field-label" for="pastor-name">Pastor's Name (for signature)</label>
+        <input type="text" id="pastor-name" placeholder="Pastor John Smith"/>
+      </div>
+
+      <div class="form-row">
+        <label class="field-label">Pastor's Signature Image <span class="char-hint">Optional — replaces the blank line above the name</span></label>
+        <div class="sig-upload-row">
+          <div class="upload-zone" style="padding:16px 20px;text-align:left;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <div>
+              <input type="file" accept="image/*" id="sig-input" style="display:none" onchange="handleSig(this)"/>
+              <label for="sig-input" class="upload-btn">✍ Upload Signature</label>
+              <div class="upload-hint" style="margin-top:5px;">PNG with transparent background works best</div>
+            </div>
+            <img id="sig-preview" alt="Signature preview" style="max-height:48px;max-width:200px;display:none;border-bottom:1px solid #ccc;padding-bottom:4px;"/>
+            <button id="sig-remove" onclick="removeSig()" class="btn-outline" style="display:none;padding:5px 12px;font-size:12px;">✕ Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col" style="margin-bottom:16px;">
+        <div class="form-row" style="margin-bottom:0;">
+          <label class="field-label" for="letter-date">Letter Date</label>
+          <input type="date" id="letter-date"/>
+        </div>
+        <div></div>
+      </div>
+
+      <div class="two-col" style="margin-bottom:0;">
+        <div class="form-row">
+          <label class="field-label" for="parish-phone">Parish Office Phone Number</label>
+          <input type="tel" id="parish-phone" placeholder="(555) 555-5555"/>
+        </div>
+        <div class="form-row">
+          <label class="field-label" for="parish-url">Contribution Statement Website URL</label>
+          <input type="url" id="parish-url" placeholder="https://yourchurch.org/giving"/>
+        </div>
+      </div>
+
+      <div class="note-box">
+        <strong>Auto-included in every letter</strong>
+        <ul style="margin:4px 0 0 18px; line-height:1.8;">
+          <li>IRS no goods/services statement</li>
+          <li>QCD section — if "Qualified Charitable Distributions" column has data for that donor</li>
+          <li>Soft Credit section — if "Soft Credit Donations" column has data for that donor</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ══ STEP 2: Preview & Export ══ -->
+    <div class="step" id="step-2">
+      <h2 class="step-title">Preview &amp; Export</h2>
+      <div class="export-bar">
+        <div class="donor-pick">
+          <span class="field-label" style="margin:0;">Preview:</span>
+          <select id="donor-select" onchange="updatePreview()"></select>
+        </div>
+        <div class="export-btns">
+          <button class="btn-outline" onclick="printOne()">🖨 Print / Save This Letter</button>
+          <button class="btn-solid" id="print-all-btn" onclick="printAll()">🖨 Print All Letters</button>
+        </div>
+      </div>
+      <iframe id="letter-preview" title="Letter Preview"></iframe>
+    </div>
+
+    <div class="nav-bar">
+      <button class="btn-outline" id="btn-back" onclick="navigate(-1)" style="visibility:hidden">← Back</button>
+      <button class="btn-solid" id="btn-next" onclick="navigate(1)" disabled>Continue →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  SQL View
+// ═══════════════════════════════════════════
+const SQL_VIEW = "Accounting_Company_ID_Table.[Company_Name] AS [Church Name], \nAccounting_Company_ID_Table_Default_Congregation_Table_Location_ID_Table_Address_ID_Table.[Address_Line_1] AS [Church Address 1], \nAccounting_Company_ID_Table_Default_Congregation_Table_Location_ID_Table_Address_ID_Table.[Address_Line_2] AS [Church Address 2], \nAccounting_Company_ID_Table_Default_Congregation_Table_Location_ID_Table_Address_ID_Table.[City] AS [Church City], \nAccounting_Company_ID_Table_Default_Congregation_Table_Location_ID_Table_Address_ID_Table.[State/Region] AS [Church State], \nAccounting_Company_ID_Table_Default_Congregation_Table_Location_ID_Table_Address_ID_Table.[Postal_Code] AS [Church Postal Code], \nContribution_Statements.[Salutation] AS [Mailing Name], \nHousehold_ID_Table_Address_ID_Table.[Address_Line_1] AS [Donor Address 1], \nHousehold_ID_Table_Address_ID_Table.[Address_Line_2] AS [Donor Address 2], \nHousehold_ID_Table_Address_ID_Table.[City] AS [Donor City], \nHousehold_ID_Table_Address_ID_Table.[State/Region] AS [Donor State], \nHousehold_ID_Table_Address_ID_Table.[Postal_Code] AS [Donor Postal Code],\nContact_Record_Table.[Informal_Dynamic_Merge_Field] AS [Salutation],\nContribution_Statements.[Statement_Year] AS [Statement Year], \nContribution_Statements.[__Statement_Amount] AS [Deductible Donation Amount],\nSTUFF((\n    SELECT ', ' + P.Statement_Title + ' $' + CAST(SUM(DD.Amount) AS VARCHAR(20))\n    FROM Donations D \n    INNER JOIN Donation_Distributions DD ON DD.Donation_ID = D.Donation_ID\n    INNER JOIN Programs P ON P.Program_ID = DD.Program_ID \n    WHERE D.Statement_ID = Contribution_Statements.Statement_ID \n    AND D.Payment_Type_ID NOT IN (62, 36)\n    GROUP BY P.Statement_Title\n    ORDER BY P.Statement_Title ASC\n    FOR XML PATH('')\n     ), 1, 2, '') AS [Contributions (Funds)],\n(SELECT SUM(DD.Amount)\n    FROM Donations D \n    INNER JOIN Donation_Distributions DD ON DD.Donation_ID = D.Donation_ID\n    INNER JOIN Programs P ON P.Program_ID = DD.Program_ID \n    WHERE D.Statement_ID = Contribution_Statements.Statement_ID \n    AND D.Payment_Type_ID IN (62, 36)) AS [Qualified Charitable Distributions],\n(SELECT SUM(DD.Amount)\n    FROM Donations D \n    INNER JOIN Donation_Distributions DD ON DD.Donation_ID = D.Donation_ID\n    INNER JOIN Programs P ON P.Program_ID = DD.Program_ID \n    WHERE DD.Soft_Credit_Statement_ID = Contribution_Statements.Statement_ID ) AS [Soft Credit Donations]";
+
+function downloadSQL() {
+  const blob = new Blob([SQL_VIEW], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'EOY_Donor_Letter_View.sql';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════════════════════
+//  Constants
+// ═══════════════════════════════════════════
+const TOTAL_STEPS = 3;
+
+// Exact CSV column names (standardized)
+const COL = {
+  churchName:    "Church Name",
+  churchAddr1:   "Church Address 1",
+  churchAddr2:   "Church Address 2",
+  churchCity:    "Church City",
+  churchState:   "Church State",
+  churchZip:     "Church Postal Code",
+  mailingName:   "Mailing Name",
+  donorAddr1:    "Donor Address 1",
+  donorAddr2:    "Donor Address 2",
+  donorCity:     "Donor City",
+  donorState:    "Donor State",
+  donorZip:      "Donor Postal Code",
+  salutation:    "Salutation",
+  statementYear: "Statement Year",
+  totalAmount:   "Deductible Donation Amount",
+  gifts:         "Contributions (Funds)",
+  qcd:           "Qualified Charitable Distributions",
+  soft:          "Soft Credit Donations"
+};
+
+const REQUIRED_COLS = [COL.churchName, COL.churchAddr1, COL.mailingName, COL.gifts];
+const OPTIONAL_COLS = [COL.churchAddr2, COL.churchCity, COL.churchState, COL.churchZip,
+  COL.donorAddr1, COL.donorAddr2, COL.donorCity, COL.donorState, COL.donorZip,
+  COL.salutation, COL.statementYear, COL.totalAmount, COL.qcd, COL.soft];
+
+const IRS_STATEMENT = "No goods or services were provided in exchange for your contributions. Your gifts are tax-deductible to the extent allowed by law under Section 501(c)(3) of the Internal Revenue Code.";
+const QCD_NOTE = "Qualified Charitable Distributions (QCDs) are transfers made directly from an IRA to a qualified charity. These amounts are listed below for your records. QCDs are excluded from your taxable income and are not reported as charitable deductions.";
+const SOFT_NOTE = "Soft credit donations are gifts credited to your record on behalf of another donor (e.g., matching gifts or tribute gifts). These amounts are listed below for informational purposes only and are not tax-deductible by you.";
+
+// ═══════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════
+let currentStep = 0;
+let donors = [];
+let csvHeaders = [];
+let logoDataUrl = "";
+let sigDataUrl = "";
+let detectedYear = "";
+
+// ═══════════════════════════════════════════
+//  CSV Parser
+// ═══════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+  return lines.slice(1).filter(l => l.trim()).map(line => {
+    const fields = [];
+    let cur = "", inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { inQ = !inQ; }
+      else if (line[i] === ',' && !inQ) { fields.push(cur.trim()); cur = ""; }
+      else { cur += line[i]; }
+    }
+    fields.push(cur.trim());
+    const row = {};
+    headers.forEach((h, i) => { row[h] = (fields[i] || "").replace(/^"|"$/g, "").trim(); });
+    return row;
+  });
+}
+
+// ═══════════════════════════════════════════
+//  File Handlers
+// ═══════════════════════════════════════════
+function handleCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = parseCSV(ev.target.result);
+      if (!parsed.length) { showMsg("csv-error", "No data rows found in file."); return; }
+
+      donors = parsed;
+      csvHeaders = Object.keys(parsed[0]);
+
+      // Detect statement year from first row
+      detectedYear = (parsed[0][COL.statementYear] || "").trim();
+
+      // Check required columns
+      const missing = REQUIRED_COLS.filter(c => !csvHeaders.includes(c));
+
+      hideMsg("csv-error");
+      showMsg("csv-success", "✓ " + donors.length + " donors loaded" +
+        (detectedYear ? " · Statement Year: " + detectedYear : ""));
+
+      if (missing.length) {
+        showMsg("csv-error", "⚠ Missing required columns: " + missing.join(", "));
+      }
+
+      // Show field detection chips
+      showFieldStatus();
+      buildPreviewTable(parsed.slice(0, 3));
+      // Set default letter date to today
+const _today = new Date();
+document.getElementById("letter-date").value =
+  _today.getFullYear() + "-" +
+  String(_today.getMonth()+1).padStart(2,"0") + "-" +
+  String(_today.getDate()).padStart(2,"0");
+updateNavButtons();
+    } catch(e) {
+      showMsg("csv-error", "Could not parse file — please ensure it is a valid CSV.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function handleLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    logoDataUrl = ev.target.result;
+    const img = document.getElementById("logo-preview");
+    img.src = logoDataUrl;
+    img.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleSig(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    sigDataUrl = ev.target.result;
+    const img = document.getElementById("sig-preview");
+    img.src = sigDataUrl;
+    img.style.display = "block";
+    document.getElementById("sig-remove").style.display = "inline-block";
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeSig() {
+  sigDataUrl = "";
+  document.getElementById("sig-input").value = "";
+  const img = document.getElementById("sig-preview");
+  img.src = "";
+  img.style.display = "none";
+  document.getElementById("sig-remove").style.display = "none";
+}
+
+function showFieldStatus() {
+  const wrap = document.getElementById("field-status");
+  const chips = document.getElementById("field-chips");
+  const allCols = [...REQUIRED_COLS, ...OPTIONAL_COLS];
+  chips.innerHTML = allCols.map(col => {
+    const found = csvHeaders.includes(col);
+    const req = REQUIRED_COLS.includes(col);
+    return `<span class="chip ${found ? 'found' : (req ? 'missing' : '')}">${found ? '✓' : (req ? '✗' : '○')} ${col}</span>`;
+  }).join("");
+  wrap.style.display = "block";
+}
+
+function buildPreviewTable(rows) {
+  const wrap = document.getElementById("csv-preview-wrap");
+  const label = document.getElementById("csv-preview-label");
+  const table = document.getElementById("csv-preview-table");
+  label.textContent = "Preview — first " + rows.length + " rows:";
+  const thead = "<thead><tr>" + csvHeaders.map(h => "<th>" + esc(h) + "</th>").join("") + "</tr></thead>";
+  const tbody = "<tbody>" + rows.map(r =>
+    "<tr>" + csvHeaders.map(h => "<td title='" + esc(r[h]||"") + "'>" + esc(r[h] || "") + "</td>").join("") + "</tr>"
+  ).join("") + "</tbody>";
+  table.innerHTML = thead + tbody;
+  wrap.style.display = "block";
+}
+
+function showMsg(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = "block";
+}
+function hideMsg(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+// ═══════════════════════════════════════════
+//  Gift Parser
+// ═══════════════════════════════════════════
+function parseGiftField(raw) {
+  if (!raw) return [];
+  return raw.split(",").map(item => {
+    const s = item.trim();
+    const m = s.match(/^(.+?)\s+\$?([\d,]+(?:\.\d{2})?)$/);
+    if (m) return { fund: m[1].trim(), amount: parseFloat(m[2].replace(/,/g, "")) };
+    return { fund: s, amount: null };
+  }).filter(g => g.fund);
+}
+
+function fmtMoney(n) {
+  return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
+}
+
+// ═══════════════════════════════════════════
+//  Letter Builder
+// ═══════════════════════════════════════════
+function buildLetterHTML(donor) {
+  const v = col => (donor[col] || "").trim();
+
+  const orgName    = v(COL.churchName);
+  const orgAddr1   = v(COL.churchAddr1);
+  const orgAddr2   = v(COL.churchAddr2);
+  const orgCity    = v(COL.churchCity);
+  const orgState   = v(COL.churchState);
+  const orgZip     = v(COL.churchZip);
+
+  const donorName  = v(COL.mailingName);
+  const donorAddr1 = v(COL.donorAddr1);
+  const donorAddr2 = v(COL.donorAddr2);
+  const donorCity  = v(COL.donorCity);
+  const donorState = v(COL.donorState);
+  const donorZip   = v(COL.donorZip);
+  const salutation = v(COL.salutation) || ("Dear " + donorName);
+  const taxYear    = v(COL.statementYear) || detectedYear || new Date().getFullYear() - 1;
+
+  const letterBody = document.getElementById("letter-body").value;
+  const closing    = document.getElementById("letter-closing").value;
+  const pastorName = document.getElementById("pastor-name").value;
+  const sigImg = sigDataUrl ? `<img src="${sigDataUrl}" style="max-height:48px;max-width:180px;display:block;margin-bottom:2px;" alt="Signature"/>` : '<div style="height:32px;"></div>';
+
+  const gifts = parseGiftField(v(COL.gifts));
+  const giftsTotal = gifts.reduce((s, x) => s + (x.amount || 0), 0);
+
+  // QCD and soft come as plain totals (dollar amount only)
+  const qcdTotal  = parseFloat((v(COL.qcd)  || "0").replace(/[$,]/g, "")) || 0;
+  const softTotal = parseFloat((v(COL.soft) || "0").replace(/[$,]/g, "")) || 0;
+
+  // Use user-chosen date or fall back to today
+  const letterDateVal = document.getElementById("letter-date").value;
+  const today = letterDateVal
+    ? new Date(letterDateVal + "T12:00:00").toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" })
+    : new Date().toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" });
+  const orgCityLine   = [orgCity, orgState, orgZip].filter(Boolean).join(", ");
+  const donorCityLine = [donorCity, donorState, donorZip].filter(Boolean).join(", ");
+
+  function tableHTML(items, total, label) {
+    if (!items.length) return "";
+    const rows = items.map(g =>
+      `<tr>
+        <td style="padding:3px 10px;border-bottom:none;font-family:Georgia,serif;font-size:8.5pt;">${escHtml(g.fund)}</td>
+        <td style="padding:3px 10px;border-bottom:none;text-align:right;font-family:Georgia,serif;font-size:8.5pt;">${g.amount != null ? fmtMoney(g.amount) : "—"}</td>
+      </tr>`).join("");
+    const totalRow = total > 0 ? `<tr>
+      <td style="padding:4px 10px;font-weight:bold;font-family:Georgia,serif;font-size:8.5pt;border-top:1.5px solid #222;">Total ${escHtml(label)}</td>
+      <td style="padding:4px 10px;text-align:right;font-weight:bold;font-family:Georgia,serif;font-size:8.5pt;border-top:1.5px solid #222;">${fmtMoney(total)}</td>
+    </tr>` : "";
+    return `<table style="width:100%;border-collapse:collapse;border:none;margin:4px 0 8px;">
+      <thead><tr style="background:#222;color:#fff;">
+        <td style="padding:4px 10px;font-family:Georgia,serif;font-size:8.5pt;font-weight:600;">Fund</td>
+        <td style="padding:4px 10px;text-align:right;font-family:Georgia,serif;font-size:8.5pt;font-weight:600;">Amount</td>
+      </tr></thead>
+      <tbody>${rows}${totalRow}</tbody>
+    </table>`;
+  }
+
+  const logoTag = logoDataUrl
+    ? `<img src="${logoDataUrl}" style="max-height:64px;max-width:180px;display:block;" alt="Church Logo"/>`
+    : "";
+
+  const giftsSection = gifts.length ? `
+    <div class="section-hd">Contributions</div>
+    ${tableHTML(gifts, giftsTotal, "Contributions")}` : "";
+
+  // QCD and soft: simple label + total lines shown only if amount > 0
+  const qcdLine  = qcdTotal  > 0 ? '<div class="summary-line"><span class="summary-label">Qualified Charitable Distributions</span><span class="summary-amt">' + fmtMoney(qcdTotal)  + '</span></div>' : "";
+  const softLine = softTotal > 0 ? '<div class="summary-line"><span class="summary-label">Soft Credit Donations</span><span class="summary-amt">' + fmtMoney(softTotal) + '</span></div>' : "";
+  const parishPhone = document.getElementById("parish-phone").value.trim();
+  const parishUrl   = document.getElementById("parish-url").value.trim();
+  let contactParts = [];
+  if (parishPhone) contactParts.push('call the parish office at ' + escHtml(parishPhone));
+  if (parishUrl)   contactParts.push('visit <a href="' + escHtml(parishUrl) + '" style="color:#111;">' + escHtml(parishUrl) + '</a>');
+  const contactStr = contactParts.length
+    ? contactParts.join(' or ')
+    : 'contact the parish office or log into your website';
+  const detailStatementNote = 'If you are interested in a detail statement of your contributions for the year, please ' + contactStr + ' to download a copy.';
+  const qcdSection  = qcdLine;
+  const softSection = softLine;
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<style>
+  @page{size:8.5in 11in;margin:0;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#fff;font-family:Georgia,serif;color:#111;}
+  /* Full letter page — 8.5x11, content margins match standard business letter */
+  .page{
+    width:8.5in;
+    min-height:11in;
+    max-height:11in;
+    overflow:hidden;
+    padding:0.5in 1in 0.4in 1in;
+    position:relative;
+  }
+  /* ── Header: logo right, church info left ── */
+  .org-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom:1.5px solid #111;
+    padding-bottom:10px;
+    margin-bottom:0;
+  }
+  .org-left{ flex:1; }
+  .org-name{font-size:14pt;font-weight:bold;letter-spacing:0.3px;}
+  .org-address{font-size:8pt;color:#444;margin-top:3px;line-height:1.5;}
+  .org-logo{flex-shrink:0;margin-left:18px;text-align:right;}
+  .org-logo img{max-height:64px;max-width:180px;display:block;}
+  /* ── Window envelope zones ──
+     #10 envelope: 9.5" x 4.125"
+     Return address window: top ~0.5in, left ~0.25in, w~1.5in, h~0.8in
+     Donor address window:  top ~1.875in, left ~3.5in, w~2in, h~0.875in
+     On an 8.5x11 letter with 1in left margin:
+       Return address block sits at top of letter (first ~0.8in of content)
+       Donor block positioned at approx 1.875in from page top = 1.375in from content top
+  */
+  .date-line{font-size:8pt;color:#444;margin-top:8px;margin-bottom:0;}
+  /* Donor address window — #10 envelope lower window sits at ~1.875in from page top.
+     Page padding-top is 0.5in, so we need ~1.375in from content top.
+     Letterhead (~0.55in) + date line (~0.18in) = ~0.73in used.
+     Remaining spacer needed: ~0.65in */
+  .donor-block{
+    margin-top:0.65in;
+    margin-bottom:0.22in;
+    font-size:9pt;
+    line-height:1.6;
+    min-height:0.75in;
+  }
+  .salutation{font-size:10pt;margin-bottom:8px;}
+  .letter-body{font-size:9.5pt;line-height:1.75;margin-bottom:10px;white-space:pre-wrap;}
+  .closing{font-size:9.5pt;line-height:1.75;margin-top:8px;white-space:pre-wrap;}
+  .pastor-sig{margin-top:18px;font-size:9pt;}
+  .pastor-name{font-weight:bold;margin-top:3px;}
+  .irs-box{margin-top:12px;padding:7px 11px;border-left:2px solid #111;font-size:7.5pt;color:#333;line-height:1.6;font-style:italic;}
+  .section-hd{font-size:8pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;border-bottom:1px solid #111;padding-bottom:3px;margin-top:10px;}
+  .section-note{font-size:7.5pt;color:#444;margin-bottom:6px;line-height:1.6;font-style:italic;}
+  .summary-line{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid #ddd;font-size:9pt;}
+  .summary-label{font-weight:bold;}
+  .summary-amt{font-weight:bold;font-family:Georgia,serif;}
+  .detail-note{margin-top:10px;font-size:7.5pt;color:#555;font-style:italic;line-height:1.6;border-top:1px solid #ddd;padding-top:8px;}
+</style>
+</head><body>
+<div class="page">
+
+  <!-- ── Letterhead: church left, logo right ── -->
+  <div class="org-header">
+    <div class="org-left">
+      <div class="org-name">${escHtml(orgName)}</div>
+      <div class="org-address">
+        ${escHtml(orgAddr1)}${orgAddr2 ? "<br/>" + escHtml(orgAddr2) : ""}
+        ${orgCityLine ? "<br/>" + escHtml(orgCityLine) : ""}
+      </div>
+    </div>
+    ${logoTag ? '<div class="org-logo">' + logoTag + '</div>' : ""}
+  </div>
+
+  <!-- Date line -->
+  <div class="date-line">${today}</div>
+
+  <!-- Donor address — positioned for #10 double-window envelope lower window (~1.875in from page top) -->
+  <div class="donor-block">
+    <strong>${escHtml(donorName)}</strong><br/>
+    ${donorAddr1 ? escHtml(donorAddr1) + "<br/>" : ""}
+    ${donorAddr2 ? escHtml(donorAddr2) + "<br/>" : ""}
+    ${donorCityLine ? escHtml(donorCityLine) : ""}
+  </div>
+
+  <div class="salutation">${escHtml(salutation)},</div>
+  <div class="letter-body">${escHtml(letterBody)}</div>
+  ${giftsSection}
+  <div class="closing">${escHtml(closing)}</div>
+  <div class="pastor-sig">
+    <div>In His Service,</div>
+    ${sigImg}
+    <div class="pastor-name">${escHtml(pastorName)}</div>
+  </div>
+  <div class="irs-box">${IRS_STATEMENT}<br/><br/>${detailStatementNote}</div>
+  ${qcdSection}
+  ${softSection}
+</div>
+</body></html>`;
+}
+
+// ═══════════════════════════════════════════
+//  Export / Print
+// ═══════════════════════════════════════════
+function updatePreview() {
+  const idx = parseInt(document.getElementById("donor-select").value) || 0;
+  document.getElementById("letter-preview").srcdoc = buildLetterHTML(donors[idx]);
+}
+
+function printOne() {
+  const idx = parseInt(document.getElementById("donor-select").value) || 0;
+  openPrint(buildLetterHTML(donors[idx]));
+}
+
+function printAll() {
+  const btn = document.getElementById("print-all-btn");
+  btn.disabled = true;
+  btn.textContent = "Preparing…";
+  const css = `
+    @page{size:8.5in 11in;margin:0;}
+    @media print{.pb{page-break-after:always;}}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:#fff;font-family:Georgia,serif;color:#111;}
+    .page{width:8.5in;min-height:11in;max-height:11in;overflow:hidden;padding:0.5in 1in 0.4in 1in;position:relative;}
+    .org-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1.5px solid #111;padding-bottom:10px;margin-bottom:0;}
+    .org-left{flex:1;}
+    .org-name{font-size:14pt;font-weight:bold;letter-spacing:0.3px;}
+    .org-address{font-size:8pt;color:#444;margin-top:3px;line-height:1.5;}
+    .org-logo{flex-shrink:0;margin-left:18px;text-align:right;}
+    .org-logo img{max-height:64px;max-width:180px;display:block;}
+    .date-line{font-size:8pt;color:#444;margin-top:10px;margin-bottom:0;}
+    .donor-block{margin-top:0.62in;margin-bottom:0.15in;font-size:9pt;line-height:1.6;min-height:0.85in;}
+    .salutation{font-size:10pt;margin-bottom:8px;}
+    .letter-body{font-size:9.5pt;line-height:1.75;margin-bottom:10px;white-space:pre-wrap;}
+    .closing{font-size:9.5pt;line-height:1.75;margin-top:8px;white-space:pre-wrap;}
+    .pastor-sig{margin-top:18px;font-size:9pt;}
+    .pastor-name{font-weight:bold;margin-top:3px;}
+    .irs-box{margin-top:12px;padding:7px 11px;border-left:2px solid #111;font-size:7.5pt;color:#333;line-height:1.6;font-style:italic;}
+    .section-hd{font-size:8pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;border-bottom:1px solid #111;padding-bottom:3px;margin-top:10px;}
+    .section-note{font-size:7.5pt;color:#444;margin-bottom:6px;line-height:1.6;font-style:italic;}
+    .summary-line{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid #ddd;font-size:9pt;}
+    .summary-label{font-weight:bold;}
+    .summary-amt{font-weight:bold;font-family:Georgia,serif;}
+    .detail-note{margin-top:10px;font-size:7.5pt;color:#555;font-style:italic;line-height:1.6;border-top:1px solid #ddd;padding-top:8px;}
+  `;
+  const bodies = donors.map((d, i) => {
+    const m = buildLetterHTML(d).match(/<body>([\s\S]*?)<\/body>/);
+    return `<div class="pb">${m ? m[1] : ""}</div>`;
+  }).join("");
+  setTimeout(() => {
+    openPrint(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>${css}</style></head><body>${bodies}</body></html>`);
+    btn.disabled = false;
+    btn.textContent = "🖨 Print All " + donors.length + " Letters";
+  }, 100);
+}
+
+function openPrint(html) {
+  const w = window.open("", "_blank");
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 600);
+}
+
+// ═══════════════════════════════════════════
+//  Navigation
+// ═══════════════════════════════════════════
+function canAdvance() {
+  if (currentStep === 0) {
+    const missingRequired = REQUIRED_COLS.filter(c => !csvHeaders.includes(c));
+    return donors.length > 0 && missingRequired.length === 0;
+  }
+  if (currentStep === 1) {
+    return document.getElementById("letter-body").value.trim() &&
+           document.getElementById("letter-closing").value.trim() &&
+           document.getElementById("pastor-name").value.trim();
+  }
+  return true;
+}
+
+function navigate(dir) {
+  if (dir === 1 && !canAdvance()) return;
+  const next = currentStep + dir;
+  if (next < 0 || next >= TOTAL_STEPS) return;
+
+  if (next === 2) {
+    const sel = document.getElementById("donor-select");
+    sel.innerHTML = donors.map((d, i) => {
+      const name = (d[COL.mailingName] || "Donor " + (i+1));
+      return `<option value="${i}">${esc(name)}</option>`;
+    }).join("");
+    updatePreview();
+    document.getElementById("print-all-btn").textContent = "🖨 Print All " + donors.length + " Letters";
+  }
+
+  // Transition
+  document.getElementById("step-" + currentStep).classList.remove("active");
+  const oldTab = document.getElementById("tab-" + currentStep);
+  oldTab.classList.remove("active");
+  if (dir === 1) oldTab.classList.add("done");
+
+  currentStep = next;
+  document.getElementById("step-" + currentStep).classList.add("active");
+  const newTab = document.getElementById("tab-" + currentStep);
+  newTab.classList.remove("done");
+  newTab.classList.add("active");
+
+  updateNavButtons();
+}
+
+function updateNavButtons() {
+  const back = document.getElementById("btn-back");
+  const next = document.getElementById("btn-next");
+  back.style.visibility = currentStep > 0 ? "visible" : "hidden";
+  if (currentStep === TOTAL_STEPS - 1) {
+    next.style.display = "none";
+  } else {
+    next.style.display = "inline-block";
+    next.textContent = "Continue →";
+    next.disabled = !canAdvance();
+  }
+  // Sync tabs
+  for (let i = 0; i < TOTAL_STEPS; i++) {
+    const t = document.getElementById("tab-" + i);
+    t.classList.remove("active","done");
+    if (i === currentStep) t.classList.add("active");
+    else if (i < currentStep) t.classList.add("done");
+  }
+}
+
+function updateCount(textareaId, spanId) {
+  const len = document.getElementById(textareaId).value.length;
+  const span = document.getElementById(spanId);
+  span.textContent = len;
+  // thresholds
+  const limits = { "letter-body": 600, "letter-closing": 350 };
+  span.className = (limits[textareaId] && len > limits[textareaId]) ? "over" : "";
+}
+
+// Tab click — backward only
+for (let i = 0; i < TOTAL_STEPS; i++) {
+  (function(idx){
+    document.getElementById("tab-" + idx).addEventListener("click", function() {
+      if (idx >= currentStep) return;
+      document.getElementById("step-" + currentStep).classList.remove("active");
+      document.getElementById("tab-" + currentStep).classList.remove("active");
+      document.getElementById("tab-" + currentStep).classList.add("done");
+      currentStep = idx;
+      document.getElementById("step-" + currentStep).classList.add("active");
+      document.getElementById("tab-" + currentStep).classList.remove("done");
+      document.getElementById("tab-" + currentStep).classList.add("active");
+      updateNavButtons();
+    });
+  })(i);
+}
+
+// Live revalidation
+["letter-body","letter-closing","pastor-name"].forEach(id => {
+  document.getElementById(id).addEventListener("input", updateNavButtons);
+});
+// char counters
+[["letter-body","count-body"],["letter-closing","count-closing"]].forEach(([tid,sid]) => {
+  document.getElementById(tid).addEventListener("input", () => updateCount(tid, sid));
+});
+
+// ═══════════════════════════════════════════
+//  Utilities
+// ═══════════════════════════════════════════
+function esc(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function escHtml(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+updateNavButtons();
+</script>
+</body>
+</html>
