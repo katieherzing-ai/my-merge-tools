@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Parish Calendar & Contact Summary Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2A41;
+    --ink-soft:#3A4A5E;
+    --burgundy:#7A2E3B;
+    --burgundy-dark:#5E2129;
+    --gold:#B08D57;
+    --parchment:#F1EAD8;
+    --parchment-deep:#E7DCC2;
+    --paper:#FFFFFF;
+    --line:#D8CFB8;
+    --good:#3E6B4F;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--ink);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{font-family:'Source Serif 4',Georgia,serif;}
+
+  /* ---------- App shell ---------- */
+  .shell{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
+  .topbar{
+    display:flex;align-items:center;gap:14px;
+    padding:18px 4px 26px;
+  }
+  .topbar .mark{
+    width:38px;height:38px;border-radius:3px;
+    background:linear-gradient(135deg,var(--burgundy),var(--burgundy-dark));
+    position:relative;flex-shrink:0;
+    box-shadow:0 2px 6px rgba(0,0,0,.35);
+  }
+  .topbar .mark::after{
+    content:"";position:absolute;top:6px;left:6px;right:6px;bottom:6px;
+    border:1.5px solid var(--gold);border-radius:2px;
+  }
+  .topbar h1{color:var(--parchment);font-size:22px;margin:0;font-weight:600;letter-spacing:.2px;}
+  .topbar p{color:#9DAEC2;margin:2px 0 0;font-size:13px;}
+
+  .card{
+    background:var(--parchment);
+    border:1px solid var(--parchment-deep);
+    border-radius:6px;
+    padding:28px;
+    margin-bottom:20px;
+  }
+  .card h2{font-size:18px;margin:0 0 6px;color:var(--ink);}
+  .card .sub{color:var(--ink-soft);font-size:13.5px;margin:0 0 20px;line-height:1.5;}
+
+  /* Upload zone */
+  .dropzone{
+    border:2px dashed var(--burgundy);
+    border-radius:6px;
+    background:var(--paper);
+    padding:36px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:background .15s;
+  }
+  .dropzone:hover{background:#fffdf8;}
+  .dropzone.drag{background:#fbf0e9;}
+  .dropzone .icon{font-size:30px;margin-bottom:8px;color:var(--burgundy);}
+  .dropzone .big{font-weight:600;font-size:15px;color:var(--ink);}
+  .dropzone .small{font-size:12.5px;color:var(--ink-soft);margin-top:4px;}
+  input[type=file]{display:none;}
+
+  .req-cols{
+    margin-top:18px;font-size:12.5px;color:var(--ink-soft);
+    display:flex;flex-wrap:wrap;gap:8px;
+  }
+  .req-cols span{
+    background:var(--paper);border:1px solid var(--line);
+    padding:4px 10px;border-radius:12px;
+  }
+
+  /* Mapping */
+  .map-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .map-row label{display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:5px;}
+  .map-row .hint{font-size:11.5px;color:var(--ink-soft);font-weight:400;margin-left:6px;}
+  select,input[type=text]{
+    width:100%;padding:9px 10px;border-radius:4px;border:1px solid var(--line);
+    font-family:'Inter',sans-serif;font-size:13.5px;background:var(--paper);color:var(--ink);
+  }
+  .btn{
+    appearance:none;border:none;cursor:pointer;
+    font-family:'Inter',sans-serif;font-weight:600;font-size:13.5px;
+    padding:10px 18px;border-radius:4px;
+    background:var(--burgundy);color:#fff;
+    transition:background .15s;
+  }
+  .btn:hover{background:var(--burgundy-dark);}
+  .btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--ink-soft);}
+  .btn.secondary:hover{background:rgba(0,0,0,.05);}
+  .btn.ghost{background:transparent;color:var(--parchment);border:1px solid #4A5B70;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  .actions-row{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;}
+
+  /* Preview mini table */
+  .preview-table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px;}
+  .preview-table th,.preview-table td{
+    border:1px solid var(--line);padding:5px 8px;text-align:left;
+    max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .preview-table th{background:var(--parchment-deep);}
+
+  /* ---------- Main app (after data loaded) ---------- */
+  .toolbar{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    background:var(--ink);color:var(--parchment);
+    padding:14px 18px;border-radius:6px;margin-bottom:18px;
+    position:sticky;top:12px;z-index:20;box-shadow:0 4px 14px rgba(0,0,0,.3);
+  }
+  .toolbar .grp{display:flex;align-items:center;gap:6px;}
+  .toolbar label{font-size:11.5px;color:#9DAEC2;text-transform:uppercase;letter-spacing:.5px;}
+  .toolbar select, .toolbar input[type=text]{
+    background:#26374D;color:#fff;border:1px solid #4A5B70;padding:7px 9px;font-size:13px;min-width:130px;
+  }
+  .tabs{display:flex;gap:4px;margin-left:auto;}
+  .tab-btn{
+    padding:8px 16px;border-radius:4px;border:1px solid #4A5B70;background:transparent;color:#C9D3DE;
+    cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;
+  }
+  .tab-btn.active{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+  .spacer-line{flex-basis:100%;height:0;}
+
+  .field-line{color:#9DAEC2;font-size:11.5px;}
+
+  /* ---------- Printable calendar ---------- */
+  .print-surface{background:var(--paper);border-radius:6px;padding:26px;}
+  .cal-header{text-align:center;margin-bottom:18px;}
+  .cal-header .parish{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--burgundy);font-weight:600;margin:0;}
+  .cal-header h2{font-size:26px;margin:4px 0 2px;color:var(--ink);}
+
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid var(--line);border-top:1px solid var(--line);}
+  .cal-dow{
+    background:var(--ink);color:var(--parchment);
+    text-align:center;font-size:11px;font-weight:600;letter-spacing:.8px;
+    padding:7px 0;border-right:1px solid var(--line);text-transform:uppercase;
+  }
+  .cal-cell{
+    border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+    min-height:104px;padding:5px 6px;position:relative;
+  }
+  .cal-cell.muted{background:#FAFAF7;}
+  .cal-cell .daynum{font-size:11.5px;font-weight:700;color:var(--ink-soft);margin-bottom:3px;}
+  .cal-cell.muted .daynum{color:#C7C0AC;}
+  .evt-pill{
+    background:var(--parchment);border-left:3px solid var(--burgundy);
+    border-radius:2px;padding:2px 5px;margin-bottom:3px;font-size:10px;line-height:1.25;
+  }
+  .evt-pill .t{font-weight:700;color:var(--burgundy);}
+  .evt-pill .n{color:var(--ink);display:block;}
+  .evt-pill .r{color:var(--ink-soft);font-size:9.3px;}
+
+  /* ---------- Contact summary sheets ---------- */
+  .contact-sheet{background:var(--paper);border-radius:6px;padding:32px;margin-bottom:20px;}
+  .sheet-head{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .sheet-head .parish{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--burgundy);font-weight:600;margin:0 0 4px;}
+  .sheet-head h2{font-size:22px;margin:0;color:var(--ink);}
+  .sheet-head .month{font-size:13px;color:var(--ink-soft);margin-top:3px;}
+  .sheet-head .count{text-align:right;font-size:12px;color:var(--ink-soft);}
+  .sheet-head .count b{font-size:22px;color:var(--burgundy);display:block;font-family:'Source Serif 4',serif;}
+
+  table.evt-table{width:100%;border-collapse:collapse;font-size:13px;}
+  table.evt-table th{
+    text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--ink-soft);border-bottom:1px solid var(--line);padding:6px 8px;
+  }
+  table.evt-table td{padding:9px 8px;border-bottom:1px solid #ECE5D3;}
+  table.evt-table tr:nth-child(even) td{background:#FBF8F1;}
+  .empty-note{color:var(--ink-soft);font-size:13px;font-style:italic;padding:20px 0;}
+
+  .no-print{}
+  @media print{
+    body{background:#fff !important;}
+    .no-print{display:none !important;}
+    .shell{max-width:none;padding:0;margin:0;}
+    .print-surface,.contact-sheet{border-radius:0;padding:0;}
+    .card{display:none;}
+    .contact-sheet{page-break-after:always;padding:14px 4px;}
+    .contact-sheet:last-child{page-break-after:auto;}
+    .cal-header{margin-bottom:8px;}
+    .cal-header h2{font-size:20px;margin:2px 0;}
+    .cal-header .parish{font-size:11px;}
+    .cal-cell{min-height:0;height:1.1in;padding:3px 4px;}
+    .cal-dow{padding:4px 0;font-size:9.5px;}
+    .cal-cell .daynum{font-size:10px;margin-bottom:2px;}
+    .evt-pill{padding:1px 4px;margin-bottom:2px;font-size:8.3px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <div class="topbar no-print">
+    <div class="mark"></div>
+    <div>
+      <h1>Parish Calendar &amp; Contact Summary Builder</h1>
+      <p>Turn an event export into a printable parish calendar and per-leader summary sheets.</p>
+    </div>
+  </div>
+
+  <!-- STEP 1: UPLOAD -->
+  <div class="card" id="uploadCard">
+    <h2>1. Load your event list</h2>
+    <p class="sub">Upload the Excel export (.xlsx or .csv) with your event data. Column names don't need to match exactly &mdash; you'll confirm the mapping in the next step.</p>
+    <div class="dropzone" id="dropzone">
+      <div class="icon">&#128196;</div>
+      <div class="big">Click to choose a file, or drag it here</div>
+      <div class="small">.xlsx or .csv</div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+    <div class="req-cols">
+      <span>Event name</span><span>Date</span><span>Start time</span><span>End time (optional)</span><span>Room / location</span><span>Primary contact</span>
+    </div>
+  </div>
+
+  <!-- STEP 2: MAPPING -->
+  <div class="card no-print" id="mapCard" style="display:none;">
+    <h2>2. Confirm which columns are which</h2>
+    <p class="sub">We've guessed based on your headers &mdash; adjust anything that's wrong.</p>
+    <div class="map-grid" id="mapGrid"></div>
+    <div style="margin-top:18px;">
+      <table class="preview-table" id="previewTable"></table>
+    </div>
+    <div class="actions-row">
+      <button class="btn" id="buildBtn">Build calendar &amp; summaries</button>
+      <button class="btn secondary" id="backBtn">Choose a different file</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: APP -->
+  <div id="appArea" style="display:none;">
+    <div class="toolbar no-print">
+      <div class="grp">
+        <label>Parish</label>
+        <input type="text" id="parishName" value="Our Parish" style="min-width:170px;">
+      </div>
+      <div class="grp">
+        <label>Month</label>
+        <select id="monthSelect"></select>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="calendar">Parish Calendar</button>
+        <button class="tab-btn" data-tab="summaries">Contact Summaries</button>
+      </div>
+      <div class="spacer-line"></div>
+      <div class="grp">
+        <button class="btn" id="printBtn">Print this view</button>
+        <button class="btn ghost" id="startOverBtn">Load a different file</button>
+      </div>
+    </div>
+
+    <div id="calendarView">
+      <div class="print-surface">
+        <div class="cal-header">
+          <p class="parish" id="calParishLabel"></p>
+          <h2 id="calMonthLabel"></h2>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+
+    <div id="summariesView" style="display:none;"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  let workbook, headers = [], rows = [];
+  let events = []; // {name, date(Date), start:{h,m}|null, end:{h,m}|null, room, contact}
+  let monthKeys = []; // 'YYYY-MM' sorted
+  let currentMonth = null;
+  let currentTab = 'calendar';
+
+  const dz = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  dz.addEventListener('click', ()=>fileInput.click());
+  ['dragover','dragenter'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));
+  dz.addEventListener('drop', e=>{
+    const f = e.dataTransfer.files[0];
+    if(f) handleFile(f);
+  });
+  fileInput.addEventListener('change', e=>{
+    const f = e.target.files[0];
+    if(f) handleFile(f);
+  });
+
+  function handleFile(file){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const data = new Uint8Array(e.target.result);
+      workbook = XLSX.read(data, {type:'array', cellDates:true});
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, {defval:'', raw:true});
+      if(!json.length){ alert('No rows found in that file.'); return; }
+      headers = Object.keys(json[0]);
+      rows = json;
+      showMapping();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function guessColumn(candidates){
+    const lower = headers.map(h=>h.toLowerCase());
+    for(const c of candidates){
+      const idx = lower.findIndex(h=>h===c);
+      if(idx>-1) return headers[idx];
+    }
+    for(const c of candidates){
+      const idx = lower.findIndex(h=>h.includes(c));
+      if(idx>-1) return headers[idx];
+    }
+    return headers[0] || '';
+  }
+
+  const fieldDefs = [
+    {key:'name', label:'Event Name', hint:'', candidates:['event name','event title','title','name','event']},
+    {key:'date', label:'Date', hint:'', candidates:['date','event date','start date']},
+    {key:'start', label:'Start Time', hint:'', candidates:['start time','time','start']},
+    {key:'end', label:'End Time', hint:'(optional)', candidates:['end time','end']},
+    {key:'room', label:'Room / Location', hint:'', candidates:['room','location','rooms','room name']},
+    {key:'contact', label:'Primary Contact', hint:'', candidates:['primary contact','contact','contact name','primary_contact','event contact']},
+  ];
+
+  let mapping = {};
+
+  function showMapping(){
+    document.getElementById('uploadCard').style.display='none';
+    const mapCard = document.getElementById('mapCard');
+    mapCard.style.display='block';
+    const grid = document.getElementById('mapGrid');
+    grid.innerHTML = '';
+    mapping = {};
+    fieldDefs.forEach(f=>{
+      mapping[f.key] = guessColumn(f.candidates);
+      const row = document.createElement('div');
+      row.className = 'map-row';
+      const opts = ['<option value="">— none —</option>'].concat(
+        headers.map(h=>`<option value="${escAttr(h)}" ${h===mapping[f.key]?'selected':''}>${escHtml(h)}</option>`)
+      ).join('');
+      row.innerHTML = `<label>${f.label}<span class="hint">${f.hint}</span></label>
+        <select data-field="${f.key}">${opts}</select>`;
+      grid.appendChild(row);
+    });
+    grid.querySelectorAll('select').forEach(sel=>{
+      sel.addEventListener('change', ()=>{ mapping[sel.dataset.field] = sel.value; renderPreview(); });
+    });
+    renderPreview();
+  }
+
+  function renderPreview(){
+    const table = document.getElementById('previewTable');
+    const cols = fieldDefs.map(f=>f.label);
+    let html = '<tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+    rows.slice(0,5).forEach(r=>{
+      html += '<tr>' + fieldDefs.map(f=>{
+        const col = mapping[f.key];
+        let v = col ? r[col] : '';
+        if(v instanceof Date) v = v.toDateString();
+        return `<td>${escHtml(String(v))}</td>`;
+      }).join('') + '</tr>';
+    });
+    table.innerHTML = html;
+  }
+
+  document.getElementById('backBtn').addEventListener('click', ()=>{
+    document.getElementById('mapCard').style.display='none';
+    document.getElementById('uploadCard').style.display='block';
+    fileInput.value = '';
+  });
+
+  document.getElementById('buildBtn').addEventListener('click', buildEvents);
+  document.getElementById('startOverBtn').addEventListener('click', ()=>{
+    document.getElementById('appArea').style.display='none';
+    document.getElementById('uploadCard').style.display='block';
+    fileInput.value = '';
+  });
+
+  function parseDateVal(v){
+    if(v === '' || v === null || v === undefined) return null;
+    if(v instanceof Date && !isNaN(v)) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+    if(typeof v === 'number'){
+      const utcDays = Math.floor(v - 25569);
+      const utcVal = utcDays*86400;
+      const d = new Date(utcVal*1000);
+      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    }
+    const d = new Date(v);
+    if(!isNaN(d)) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return null;
+  }
+
+  function parseTimeVal(v){
+    if(v === '' || v === null || v === undefined) return null;
+    if(v instanceof Date && !isNaN(v)) return {h:v.getHours(), m:v.getMinutes()};
+    if(typeof v === 'number'){
+      const totalMin = Math.round(v*24*60);
+      return {h:Math.floor(totalMin/60)%24, m:totalMin%60};
+    }
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2}):(\d{2})\s*([APap][Mm])?$/);
+    if(m){
+      let h = parseInt(m[1],10); const min = parseInt(m[2],10);
+      if(m[3]){ const ap = m[3].toLowerCase(); if(ap==='pm' && h!==12) h+=12; if(ap==='am' && h===12) h=0; }
+      return {h, m:min};
+    }
+    return null;
+  }
+
+  function fmtTime(t){
+    if(!t) return '';
+    let h = t.h % 12; if(h===0) h=12;
+    const ap = t.h < 12 ? 'AM' : 'PM';
+    return `${h}:${String(t.m).padStart(2,'0')} ${ap}`;
+  }
+
+  function condenseRooms(roomStr){
+    if(!roomStr) return '';
+    const parts = roomStr.split(/,|;/).map(p=>p.trim()).filter(Boolean);
+    if(parts.length <= 2) return parts.join(', ');
+    return `${parts.slice(0,2).join(', ')} +${parts.length - 2} more`;
+  }
+
+  function escHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escAttr(s){ return escHtml(s); }
+
+  function buildEvents(){
+    events = [];
+    rows.forEach(r=>{
+      const dateVal = mapping.date ? r[mapping.date] : null;
+      const date = parseDateVal(dateVal);
+      if(!date) return; // skip rows without a usable date
+      const name = mapping.name ? String(r[mapping.name] || '').trim() : '(untitled event)';
+      const start = mapping.start ? parseTimeVal(r[mapping.start]) : null;
+      const end = mapping.end ? parseTimeVal(r[mapping.end]) : null;
+      const room = mapping.room ? String(r[mapping.room] || '').trim() : '';
+      const contact = mapping.contact ? String(r[mapping.contact] || '').trim() : '';
+      events.push({name: name || '(untitled event)', date, start, end, room, contact: contact || 'Unassigned'});
+    });
+
+    if(!events.length){
+      alert('No events with a recognizable date were found. Please check your Date column mapping.');
+      return;
+    }
+
+    events.sort((a,b)=> a.date - b.date || ((a.start?a.start.h*60+a.start.m:0) - (b.start?b.start.h*60+b.start.m:0)));
+
+    const monthSet = new Set();
+    events.forEach(ev=> monthSet.add(`${ev.date.getFullYear()}-${String(ev.date.getMonth()+1).padStart(2,'0')}`));
+    monthKeys = Array.from(monthSet).sort();
+    currentMonth = monthKeys[0];
+
+    const monthSelect = document.getElementById('monthSelect');
+    monthSelect.innerHTML = monthKeys.map(mk=>{
+      const [y,m] = mk.split('-').map(Number);
+      const label = new Date(y, m-1, 1).toLocaleString('default',{month:'long', year:'numeric'});
+      return `<option value="${mk}">${label}</option>`;
+    }).join('');
+    monthSelect.addEventListener('change', ()=>{ currentMonth = monthSelect.value; renderAll(); });
+
+    document.getElementById('mapCard').style.display='none';
+    document.getElementById('appArea').style.display='block';
+
+    document.getElementById('parishName').addEventListener('input', renderAll);
+
+    document.querySelectorAll('.tab-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTab = btn.dataset.tab;
+        document.getElementById('calendarView').style.display = currentTab==='calendar' ? 'block' : 'none';
+        document.getElementById('summariesView').style.display = currentTab==='summaries' ? 'block' : 'none';
+      });
+    });
+
+    document.getElementById('printBtn').addEventListener('click', doPrint);
+
+    renderAll();
+  }
+
+  function renderAll(){
+    renderCalendar();
+    renderSummaries();
+  }
+
+  function renderCalendar(){
+    const [y,m] = currentMonth.split('-').map(Number);
+    const parish = document.getElementById('parishName').value || 'Our Parish';
+    document.getElementById('calParishLabel').textContent = parish;
+    document.getElementById('calMonthLabel').textContent = new Date(y, m-1, 1).toLocaleString('default',{month:'long', year:'numeric'});
+
+    const firstOfMonth = new Date(y, m-1, 1);
+    const startWeekday = firstOfMonth.getDay();
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const gridStart = new Date(y, m-1, 1 - startWeekday);
+
+    const evByDay = {};
+    events.forEach(ev=>{
+      if(ev.date.getFullYear()===y && ev.date.getMonth()===m-1){
+        const key = ev.date.getDate();
+        (evByDay[key] = evByDay[key] || []).push(ev);
+      }
+    });
+
+    const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    let html = dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+    const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+    for(let i=0;i<totalCells;i++){
+      const cellDate = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()+i);
+      const inMonth = cellDate.getMonth() === m-1;
+      const dayNum = cellDate.getDate();
+      let pills = '';
+      if(inMonth && evByDay[dayNum]){
+        evByDay[dayNum].forEach(ev=>{
+          const timeRange = ev.start ? (fmtTime(ev.start) + (ev.end ? `–${fmtTime(ev.end)}` : '')) : '';
+          const roomText = condenseRooms(ev.room);
+          pills += `<div class="evt-pill"><span class="t">${timeRange}</span><span class="n">${escHtml(ev.name)}</span>${roomText?`<span class="r">${escHtml(roomText)}</span>`:''}</div>`;
+        });
+      }
+      html += `<div class="cal-cell ${inMonth?'':'muted'}"><div class="daynum">${cellDate.getDate()}</div>${pills}</div>`;
+    }
+    document.getElementById('calGrid').innerHTML = html;
+  }
+
+  function renderSummaries(){
+    const [y,m] = currentMonth.split('-').map(Number);
+    const parish = document.getElementById('parishName').value || 'Our Parish';
+    const monthLabel = new Date(y, m-1, 1).toLocaleString('default',{month:'long', year:'numeric'});
+
+    const byContact = {};
+    events.forEach(ev=>{
+      if(ev.date.getFullYear()===y && ev.date.getMonth()===m-1){
+        (byContact[ev.contact] = byContact[ev.contact] || []).push(ev);
+      }
+    });
+    const contacts = Object.keys(byContact).sort((a,b)=>{
+      if(a==='Unassigned') return 1;
+      if(b==='Unassigned') return -1;
+      return a.localeCompare(b);
+    });
+
+    const container = document.getElementById('summariesView');
+    if(!contacts.length){
+      container.innerHTML = `<div class="contact-sheet"><p class="empty-note">No events found for ${monthLabel}.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = contacts.map(contact=>{
+      const evs = byContact[contact].slice().sort((a,b)=> a.date-b.date || ((a.start?a.start.h*60+a.start.m:0)-(b.start?b.start.h*60+b.start.m:0)));
+      const rows = evs.map(ev=>{
+        const dateStr = ev.date.toLocaleDateString('default',{weekday:'short', month:'short', day:'numeric'});
+        const timeStr = ev.start ? (fmtTime(ev.start) + (ev.end?` – ${fmtTime(ev.end)}`:'')) : '';
+        return `<tr><td>${dateStr}</td><td>${timeStr}</td><td>${escHtml(ev.name)}</td><td>${escHtml(ev.room)}</td></tr>`;
+      }).join('');
+      return `<div class="contact-sheet">
+        <div class="sheet-head">
+          <div>
+            <p class="parish">${escHtml(parish)}</p>
+            <h2>${escHtml(contact)}</h2>
+            <p class="month">Ministry Events &mdash; ${monthLabel}</p>
+          </div>
+          <div class="count"><b>${evs.length}</b>event${evs.length===1?'':'s'}</div>
+        </div>
+        <table class="evt-table">
+          <tr><th>Date</th><th>Time</th><th>Event</th><th>Room</th></tr>
+          ${rows}
+        </table>
+      </div>`;
+    }).join('');
+  }
+
+  function doPrint(){
+    let styleTag = document.getElementById('page-orientation');
+    if(!styleTag){
+      styleTag = document.createElement('style');
+      styleTag.id = 'page-orientation';
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = currentTab==='calendar'
+      ? '@page{ size: letter landscape; margin: 0.4in; }'
+      : '@page{ size: letter portrait; margin: 0.5in; }';
+    window.print();
+  }
+})();
+</script>
+</body>
+</html>
