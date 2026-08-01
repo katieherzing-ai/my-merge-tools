@@ -137,7 +137,19 @@
 
   .field-line{color:#9DAEC2;font-size:11.5px;}
 
+  .contact-panel{
+    position:absolute;top:calc(100% + 6px);left:0;z-index:30;
+    background:#26374D;border:1px solid #4A5B70;border-radius:5px;
+    min-width:220px;max-height:280px;overflow-y:auto;
+    padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .contact-panel .cp-row{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:13px;color:#E9EEF3;}
+  .contact-panel .cp-row input{accent-color:var(--gold);}
+  .contact-panel .cp-footer{border-top:1px solid #4A5B70;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;}
+  .contact-panel .cp-link{background:none;border:none;color:var(--gold);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;padding:0;}
+
   /* ---------- Printable calendar ---------- */
+  .calendar-page{margin-bottom:24px;}
   .print-surface{background:var(--paper);border-radius:6px;padding:26px;}
   .cal-header{text-align:center;margin-bottom:18px;}
   .cal-header .parish{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--burgundy);font-weight:600;margin:0;}
@@ -191,6 +203,8 @@
     .card{display:none;}
     .contact-sheet{page-break-after:always;padding:14px 4px;}
     .contact-sheet:last-child{page-break-after:auto;}
+    .calendar-page{page-break-after:always;margin-bottom:0;}
+    .calendar-page:last-child{page-break-after:auto;}
     .cal-header{margin-bottom:12px;}
     .cal-header h2{font-size:24px;margin:2px 0;}
     .cal-header .parish{font-size:12px;}
@@ -247,11 +261,20 @@
     <div class="toolbar no-print">
       <div class="grp">
         <label>Parish</label>
-        <input type="text" id="parishName" value="Our Parish" style="min-width:170px;">
+        <input type="text" id="parishName" value="Our Parish" style="min-width:150px;">
       </div>
       <div class="grp">
-        <label>Month</label>
-        <select id="monthSelect"></select>
+        <label>From</label>
+        <select id="fromMonthSelect"></select>
+      </div>
+      <div class="grp">
+        <label>To</label>
+        <select id="toMonthSelect"></select>
+      </div>
+      <div class="grp" style="position:relative;">
+        <label>Primary Contact</label>
+        <button class="btn secondary" id="contactFilterBtn" type="button" style="min-width:150px;text-align:left;">All Contacts</button>
+        <div id="contactPanel" class="contact-panel" style="display:none;"></div>
       </div>
       <div class="tabs">
         <button class="tab-btn active" data-tab="calendar">Parish Calendar</button>
@@ -265,13 +288,7 @@
     </div>
 
     <div id="calendarView">
-      <div class="print-surface">
-        <div class="cal-header">
-          <p class="parish" id="calParishLabel"></p>
-          <h2 id="calMonthLabel"></h2>
-        </div>
-        <div class="cal-grid" id="calGrid"></div>
-      </div>
+      <div id="calendarPages"></div>
     </div>
 
     <div id="summariesView" style="display:none;"></div>
@@ -283,8 +300,8 @@
 (function(){
   let workbook, headers = [], rows = [];
   let events = []; // {name, date(Date), start:{h,m}|null, end:{h,m}|null, room, contact}
-  let monthKeys = []; // 'YYYY-MM' sorted
-  let currentMonth = null;
+  let monthKeys = []; // 'YYYY-MM' sorted, distinct months present in the uploaded data
+  let selectedContacts = new Set(); // empty = all contacts
   let currentTab = 'calendar';
 
   const dz = document.getElementById('dropzone');
@@ -462,17 +479,63 @@
     events.sort((a,b)=> a.date - b.date || ((a.start?a.start.h*60+a.start.m:0) - (b.start?b.start.h*60+b.start.m:0)));
 
     const monthSet = new Set();
-    events.forEach(ev=> monthSet.add(`${ev.date.getFullYear()}-${String(ev.date.getMonth()+1).padStart(2,'0')}`));
+    events.forEach(ev=> monthSet.add(monthKeyOf(ev.date)));
     monthKeys = Array.from(monthSet).sort();
-    currentMonth = monthKeys[0];
 
-    const monthSelect = document.getElementById('monthSelect');
-    monthSelect.innerHTML = monthKeys.map(mk=>{
+    const fromSel = document.getElementById('fromMonthSelect');
+    const toSel = document.getElementById('toMonthSelect');
+    const optionsHtml = monthKeys.map(mk=>{
       const [y,m] = mk.split('-').map(Number);
       const label = new Date(y, m-1, 1).toLocaleString('default',{month:'long', year:'numeric'});
       return `<option value="${mk}">${label}</option>`;
     }).join('');
-    monthSelect.addEventListener('change', ()=>{ currentMonth = monthSelect.value; renderAll(); });
+    fromSel.innerHTML = optionsHtml;
+    toSel.innerHTML = optionsHtml;
+    fromSel.value = monthKeys[0];
+    toSel.value = monthKeys[monthKeys.length-1];
+
+    fromSel.addEventListener('change', ()=>{
+      if(fromSel.value > toSel.value) toSel.value = fromSel.value;
+      renderAll();
+    });
+    toSel.addEventListener('change', ()=>{
+      if(toSel.value < fromSel.value) fromSel.value = toSel.value;
+      renderAll();
+    });
+
+    // Primary contact filter panel
+    const allContacts = Array.from(new Set(events.map(ev=>ev.contact))).sort((a,b)=>{
+      if(a==='Unassigned') return 1;
+      if(b==='Unassigned') return -1;
+      return a.localeCompare(b);
+    });
+    const panel = document.getElementById('contactPanel');
+    panel.innerHTML = allContacts.map(c=>`
+      <label class="cp-row"><input type="checkbox" value="${escAttr(c)}"> ${escHtml(c)}</label>
+    `).join('') + `<div class="cp-footer">
+      <button type="button" class="cp-link" id="cpSelectAll">Select all</button>
+      <button type="button" class="cp-link" id="cpClear">Clear (show all)</button>
+    </div>`;
+    panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+      cb.addEventListener('change', ()=>{ syncSelectedContacts(); renderAll(); });
+    });
+    document.getElementById('cpSelectAll').addEventListener('click', ()=>{
+      panel.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=true);
+      syncSelectedContacts(); renderAll();
+    });
+    document.getElementById('cpClear').addEventListener('click', ()=>{
+      panel.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+      syncSelectedContacts(); renderAll();
+    });
+
+    const contactBtn = document.getElementById('contactFilterBtn');
+    contactBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      panel.style.display = panel.style.display==='none' ? 'block' : 'none';
+    });
+    document.addEventListener('click', (e)=>{
+      if(!panel.contains(e.target) && e.target!==contactBtn) panel.style.display='none';
+    });
 
     document.getElementById('mapCard').style.display='none';
     document.getElementById('appArea').style.display='block';
@@ -494,59 +557,112 @@
     renderAll();
   }
 
+  function monthKeyOf(date){
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+  }
+
+  function syncSelectedContacts(){
+    const panel = document.getElementById('contactPanel');
+    const checked = Array.from(panel.querySelectorAll('input[type=checkbox]:checked')).map(cb=>cb.value);
+    selectedContacts = new Set(checked);
+    const btn = document.getElementById('contactFilterBtn');
+    if(selectedContacts.size===0) btn.textContent = 'All Contacts';
+    else if(selectedContacts.size===1) btn.textContent = Array.from(selectedContacts)[0];
+    else btn.textContent = `${selectedContacts.size} contacts selected`;
+  }
+
+  // Builds the list of 'YYYY-MM' keys from fromKey to toKey inclusive, continuous (no gaps)
+  function monthSequence(fromKey, toKey){
+    const [fy, fm] = fromKey.split('-').map(Number);
+    const [ty, tm] = toKey.split('-').map(Number);
+    const seq = [];
+    let y = fy, m = fm;
+    while(y < ty || (y===ty && m<=tm)){
+      seq.push(`${y}-${String(m).padStart(2,'0')}`);
+      m++; if(m>12){ m=1; y++; }
+    }
+    return seq;
+  }
+
+  function eventPassesContactFilter(ev){
+    return selectedContacts.size===0 || selectedContacts.has(ev.contact);
+  }
+
   function renderAll(){
     renderCalendar();
     renderSummaries();
   }
 
   function renderCalendar(){
-    const [y,m] = currentMonth.split('-').map(Number);
+    const fromKey = document.getElementById('fromMonthSelect').value;
+    const toKey = document.getElementById('toMonthSelect').value;
     const parish = document.getElementById('parishName').value || 'Our Parish';
-    document.getElementById('calParishLabel').textContent = parish;
-    document.getElementById('calMonthLabel').textContent = new Date(y, m-1, 1).toLocaleString('default',{month:'long', year:'numeric'});
+    const months = monthSequence(fromKey, toKey);
 
-    const firstOfMonth = new Date(y, m-1, 1);
-    const startWeekday = firstOfMonth.getDay();
-    const daysInMonth = new Date(y, m, 0).getDate();
-    const gridStart = new Date(y, m-1, 1 - startWeekday);
+    const pagesHtml = months.map(mk=>{
+      const [y,m] = mk.split('-').map(Number);
+      const monthLabel = new Date(y, m-1, 1).toLocaleString('default',{month:'long', year:'numeric'});
 
-    const evByDay = {};
-    events.forEach(ev=>{
-      if(ev.date.getFullYear()===y && ev.date.getMonth()===m-1){
-        const key = ev.date.getDate();
-        (evByDay[key] = evByDay[key] || []).push(ev);
+      const firstOfMonth = new Date(y, m-1, 1);
+      const startWeekday = firstOfMonth.getDay();
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const gridStart = new Date(y, m-1, 1 - startWeekday);
+
+      const evByDay = {};
+      events.forEach(ev=>{
+        if(ev.date.getFullYear()===y && ev.date.getMonth()===m-1 && eventPassesContactFilter(ev)){
+          const key = ev.date.getDate();
+          (evByDay[key] = evByDay[key] || []).push(ev);
+        }
+      });
+
+      const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      let grid = dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+      const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+      for(let i=0;i<totalCells;i++){
+        const cellDate = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()+i);
+        const inMonth = cellDate.getMonth() === m-1;
+        const dayNum = cellDate.getDate();
+        let pills = '';
+        if(inMonth && evByDay[dayNum]){
+          evByDay[dayNum].forEach(ev=>{
+            const timeRange = ev.start ? (fmtTime(ev.start) + (ev.end ? `–${fmtTime(ev.end)}` : '')) : '';
+            const roomText = condenseRooms(ev.room);
+            pills += `<div class="evt-pill"><span class="t">${timeRange}</span><span class="n">${escHtml(ev.name)}</span>${roomText?`<span class="r">${escHtml(roomText)}</span>`:''}</div>`;
+          });
+        }
+        grid += `<div class="cal-cell ${inMonth?'':'muted'}"><div class="daynum">${cellDate.getDate()}</div>${pills}</div>`;
       }
-    });
 
-    const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    let html = dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+      return `<div class="calendar-page">
+        <div class="print-surface">
+          <div class="cal-header">
+            <p class="parish">${escHtml(parish)}</p>
+            <h2>${monthLabel}</h2>
+          </div>
+          <div class="cal-grid">${grid}</div>
+        </div>
+      </div>`;
+    }).join('');
 
-    const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
-    for(let i=0;i<totalCells;i++){
-      const cellDate = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()+i);
-      const inMonth = cellDate.getMonth() === m-1;
-      const dayNum = cellDate.getDate();
-      let pills = '';
-      if(inMonth && evByDay[dayNum]){
-        evByDay[dayNum].forEach(ev=>{
-          const timeRange = ev.start ? (fmtTime(ev.start) + (ev.end ? `–${fmtTime(ev.end)}` : '')) : '';
-          const roomText = condenseRooms(ev.room);
-          pills += `<div class="evt-pill"><span class="t">${timeRange}</span><span class="n">${escHtml(ev.name)}</span>${roomText?`<span class="r">${escHtml(roomText)}</span>`:''}</div>`;
-        });
-      }
-      html += `<div class="cal-cell ${inMonth?'':'muted'}"><div class="daynum">${cellDate.getDate()}</div>${pills}</div>`;
-    }
-    document.getElementById('calGrid').innerHTML = html;
+    document.getElementById('calendarPages').innerHTML = pagesHtml;
   }
 
   function renderSummaries(){
-    const [y,m] = currentMonth.split('-').map(Number);
+    const fromKey = document.getElementById('fromMonthSelect').value;
+    const toKey = document.getElementById('toMonthSelect').value;
     const parish = document.getElementById('parishName').value || 'Our Parish';
-    const monthLabel = new Date(y, m-1, 1).toLocaleString('default',{month:'long', year:'numeric'});
+    const [fy,fm] = fromKey.split('-').map(Number);
+    const [ty,tm] = toKey.split('-').map(Number);
+    const rangeLabel = fromKey===toKey
+      ? new Date(fy, fm-1, 1).toLocaleString('default',{month:'long', year:'numeric'})
+      : `${new Date(fy, fm-1, 1).toLocaleString('default',{month:'long', year:'numeric'})} – ${new Date(ty, tm-1, 1).toLocaleString('default',{month:'long', year:'numeric'})}`;
 
     const byContact = {};
     events.forEach(ev=>{
-      if(ev.date.getFullYear()===y && ev.date.getMonth()===m-1){
+      const mk = monthKeyOf(ev.date);
+      if(mk>=fromKey && mk<=toKey && eventPassesContactFilter(ev)){
         (byContact[ev.contact] = byContact[ev.contact] || []).push(ev);
       }
     });
@@ -558,14 +674,14 @@
 
     const container = document.getElementById('summariesView');
     if(!contacts.length){
-      container.innerHTML = `<div class="contact-sheet"><p class="empty-note">No events found for ${monthLabel}.</p></div>`;
+      container.innerHTML = `<div class="contact-sheet"><p class="empty-note">No events found for ${rangeLabel}.</p></div>`;
       return;
     }
 
     container.innerHTML = contacts.map(contact=>{
       const evs = byContact[contact].slice().sort((a,b)=> a.date-b.date || ((a.start?a.start.h*60+a.start.m:0)-(b.start?b.start.h*60+b.start.m:0)));
       const rows = evs.map(ev=>{
-        const dateStr = ev.date.toLocaleDateString('default',{weekday:'short', month:'short', day:'numeric'});
+        const dateStr = ev.date.toLocaleDateString('default',{weekday:'short', month:'short', day:'numeric', year:'numeric'});
         const timeStr = ev.start ? (fmtTime(ev.start) + (ev.end?` – ${fmtTime(ev.end)}`:'')) : '';
         return `<tr><td>${dateStr}</td><td>${timeStr}</td><td>${escHtml(ev.name)}</td><td>${escHtml(ev.room)}</td></tr>`;
       }).join('');
@@ -574,7 +690,7 @@
           <div>
             <p class="parish">${escHtml(parish)}</p>
             <h2>${escHtml(contact)}</h2>
-            <p class="month">Ministry Events &mdash; ${monthLabel}</p>
+            <p class="month">Ministry Events &mdash; ${rangeLabel}</p>
           </div>
           <div class="count"><b>${evs.length}</b>event${evs.length===1?'':'s'}</div>
         </div>
