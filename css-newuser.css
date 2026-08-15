@@ -241,6 +241,10 @@
   display: none;
 }
 
+.mppw-form-field mppw-form-field__static-container {
+  display: none;
+}
+
 /* MS Church Additional CSS */
 
 /* Fonts */
