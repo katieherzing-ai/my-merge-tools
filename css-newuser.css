@@ -241,7 +241,8 @@
   display: none;
 }
 
-.mppw-form-field mppw-form-field__static-container {
+#searchForm .mppw-form-field:has(#congregationId),
+#searchForm .mppw-form-field:has(#keywordSearchText) {
   display: none;
 }
 
