@@ -246,6 +246,11 @@
   display: none;
 }
 
+#advancedSearchLink,
+#searchButton {
+  display: none;
+}
+
 .mpp-innerpage--datetime.event-date-range {
   display: none;
 }
