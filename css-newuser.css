@@ -246,6 +246,10 @@
   display: none;
 }
 
+.mpp-innerpage--datetime.event-date-range {
+  display: none;
+}
+
 /* MS Church Additional CSS */
 
 /* Fonts */
