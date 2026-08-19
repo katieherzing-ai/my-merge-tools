@@ -255,6 +255,15 @@
   display: none;
 }
 
+.mppw-product-options .option-qty,
+.mppw-product-options .option-price {
+  display: none;
+}
+
+.mppw-product-options .option-name {
+  font-size: 18px;
+}
+
 /* MS Church Additional CSS */
 
 /* Fonts */
