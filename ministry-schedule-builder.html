@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ministry Schedule Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root {
+    --navy: #2b3a55;
+    --navy-light: #3d5075;
+    --border: #ccc;
+    --bg: #f7f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: #222;
+    margin: 0;
+    padding: 24px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { color: var(--navy); margin-bottom: 4px; }
+  .subtitle { color: #666; margin-top: 0; margin-bottom: 28px; }
+  .step {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .step h2 {
+    margin-top: 0;
+    font-size: 16px;
+    color: var(--navy);
+    border-bottom: 2px solid var(--bg);
+    padding-bottom: 8px;
+  }
+  label { display: block; margin: 20px 0 6px; font-weight: 600; font-size: 14px; }
+  label:first-of-type { margin-top: 4px; }
+  .upload-group { margin-bottom: 22px; padding-bottom: 4px; }
+  .upload-group:last-of-type { margin-bottom: 6px; }
+  input[type=file], input[type=text], input[type=date] {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    width: 100%;
+    max-width: 460px;
+  }
+  .daterange { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; }
+  .daterange label { margin: 0; }
+  .daterange input { max-width: 180px; }
+  button {
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 12px;
+    margin-right: 8px;
+  }
+  button:hover { background: var(--navy-light); }
+  button:disabled { background: #aaa; cursor: not-allowed; }
+  button.secondary { background: #6b7280; }
+  button.secondary:hover { background: #7f8794; }
+  .hint { font-size: 13px; color: #777; margin: 6px 0 0; }
+  #uploadStatus { margin-top: 18px; padding-top: 14px; border-top: 1px solid #eee; font-size: 13px; color: #444; }
+  .ok { color: #1a7a3c; font-weight: 600; }
+  .err { color: #b23; font-weight: 600; }
+  .massList {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    background: #fafbfc;
+  }
+  .massList label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 400;
+    font-size: 13px;
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .massList input[type=checkbox] { width: auto; }
+  .listControls { margin-bottom: 4px; }
+  #previewContainer {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    background: #fff;
+    overflow-x: auto;
+  }
+  /* ---- Schedule content styles (shared with exported file) ---- */
+  .sched-title { font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 2px; color: #111; }
+  .sched-subtitle { text-align: center; margin: 0 0 18px; color: #555; font-size: 13px; }
+  .week-block { margin-bottom: 18px; page-break-inside: avoid; break-inside: avoid; }
+  .week-header {
+    background: var(--navy);
+    color: #fff;
+    font-weight: 700;
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 4px 4px 0 0;
+  }
+  table.sched-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  table.sched-table th, table.sched-table td {
+    border: 1px solid #999;
+    padding: 5px 7px;
+    vertical-align: top;
+    text-align: left;
+  }
+  table.sched-table th { background: #eef1f6; font-size: 11px; }
+  table.sched-table td.dt-cell { white-space: nowrap; font-weight: 600; }
+  .not-filled { color: #b23324; font-style: italic; }
+  .pending-flag { color: #a67c00; }
+  .legend { font-size: 10.5px; color: #666; margin-top: 8px; }
+  .no-print-btn { margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ministry Schedule Builder</h1>
+  <p class="subtitle">Upload your two MP exports to build a printable ministry schedule with open slots flagged.</p>
+
+  <div class="step" id="step1">
+    <h2>Step 1 — Upload your MP exports</h2>
+    <div class="upload-group">
+      <label>Export the View from MP on Volunteer Management → Schedule Roles → Active Roles</label>
+      <input type="file" id="rolesFile" accept=".csv">
+      <p class="hint">Export name is usually something like "scheduled_roles.csv"</p>
+    </div>
+
+    <div class="upload-group">
+      <label>Export the View from MP on Volunteer Management → Scheduled Participants → Participants on Upcoming Schedules</label>
+      <input type="file" id="participantsFile" accept=".csv">
+      <p class="hint">Export name is usually something like "Participants_on_Upcoming_Schedules.csv"</p>
+    </div>
+
+    <div id="uploadStatus"></div>
+  </div>
+
+  <div class="step" id="step2" style="display:none;">
+    <h2>Step 2 — Choose which Masses to include</h2>
+    <div class="daterange">
+      <label>From<input type="date" id="startDate"></label>
+      <label>To<input type="date" id="endDate"></label>
+      <button id="applyRange">Apply date range</button>
+    </div>
+    <div class="listControls">
+      <button id="selectAll" class="secondary">Select all shown</button>
+      <button id="selectNone" class="secondary">Deselect all shown</button>
+    </div>
+    <div id="massList" class="massList"></div>
+  </div>
+
+  <div class="step" id="step3" style="display:none;">
+    <h2>Step 3 — Report title &amp; generate</h2>
+    <label>Report title (optional — appears at the top of the schedule)</label>
+    <input type="text" id="reportTitle" placeholder="e.g. St. Example Parish — October 2026 Ministry Schedule">
+    <div>
+      <button id="generateBtn">Generate Preview</button>
+      <button id="downloadHtmlBtn" class="secondary" disabled>Download HTML</button>
+      <button id="downloadPdfBtn" class="secondary" disabled>Print / Save as PDF</button>
+    </div>
+    <p class="hint">HTML downloads a file to embed on a webpage. PDF opens a print-ready version in a new tab — choose "Save as PDF" as the destination in the print dialog.</p>
+  </div>
+
+  <div class="step" id="step4" style="display:none;">
+    <h2>Preview</h2>
+    <p class="hint">This is exactly what will be in the downloaded file. Download it, then upload it to your PDF tool.</p>
+    <div id="previewContainer"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Order matches the parish's sample PDF (Deacon, Eucharistic Minister, Lector, Server,
+  // Mass Captain, Main Celebrant, Sacristan). Roles not in this list (e.g. Usher) fall
+  // back to alphabetical order after these. Roles not present in the uploaded data are
+  // simply never added as columns (see buildScheduleHtml's roleSet).
+  const PREFERRED_ROLE_ORDER = [
+    ['deacon'],
+    ['emhc', 'eucharistic'],
+    ['lector'],
+    ['server', 'altar server'],
+    ['mass captain'],
+    ['main celebrant', 'celebrant'],
+    ['sacristan']
+  ];
+
+  let rolesRows = null;
+  let participantsRows = null;
+  let instancesMap = {};   // key -> instance object
+  let instancesArray = []; // sorted array, set after both files load
+  let currentVisibleKeys = []; // keys currently shown as checkboxes
+
+  const el = id => document.getElementById(id);
+
+  function parseAmericanDate(s) {
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s.trim());
+    if (!m) return null;
+    return { m: parseInt(m[1], 10), d: parseInt(m[2], 10), y: parseInt(m[3], 10) };
+  }
+
+  function parseTime12(s) {
+    const m = /(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(s.trim());
+    if (!m) return null;
+    let h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    const ap = m[3].toUpperCase();
+    if (ap === 'PM' && h !== 12) h += 12;
+    if (ap === 'AM' && h === 12) h = 0;
+    return { h, min };
+  }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function makeKey(sched, y, m, d, timeStr) {
+    return `${sched}||${y}-${pad(m)}-${pad(d)}||${timeStr.trim()}`;
+  }
+
+  function buildDate(y, m, d, timeStr) {
+    const t = parseTime12(timeStr) || { h: 0, min: 0 };
+    return new Date(y, m - 1, d, t.h, t.min);
+  }
+
+  function shortRoleLabel(role) {
+    return /^emhc/i.test(role) ? 'EMHC' : role;
+  }
+
+  function roleRank(role) {
+    const lower = role.toLowerCase();
+    for (let i = 0; i < PREFERRED_ROLE_ORDER.length; i++) {
+      const keywords = PREFERRED_ROLE_ORDER[i];
+      if (keywords.some(kw => lower.includes(kw))) return i;
+    }
+    return 999;
+  }
+
+  function setStatus(msg, isError) {
+    const s = el('uploadStatus');
+    s.innerHTML = `<span class="${isError ? 'err' : 'ok'}">${msg}</span>`;
+  }
+
+  function parseCsvFile(file, cb) {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: res => cb(res.data),
+      error: err => setStatus('Error reading ' + file.name + ': ' + err, true)
+    });
+  }
+
+  function tryBuildInstances() {
+    if (!rolesRows || !participantsRows) return;
+
+    instancesMap = {};
+    let unmatched = 0;
+
+    rolesRows.forEach(row => {
+      const sched = (row['Schedule Name'] || '').trim();
+      const dateStr = row['Event Date'] || '';
+      const timeStr = (row['Start Time'] || '').trim();
+      const role = (row['Role Title'] || '').trim();
+      const count = parseInt(row['Number Of Volunteers'], 10) || 0;
+      const dparts = parseAmericanDate(dateStr);
+      if (!sched || !dparts || !timeStr || !role) return;
+      const key = makeKey(sched, dparts.y, dparts.m, dparts.d, timeStr);
+      if (!instancesMap[key]) {
+        instancesMap[key] = {
+          key, sched,
+          dateObj: buildDate(dparts.y, dparts.m, dparts.d, timeStr),
+          timeStr,
+          req: {},
+          assigned: {}
+        };
+      }
+      instancesMap[key].req[role] = (instancesMap[key].req[role] || 0) + count;
+    });
+
+    participantsRows.forEach(row => {
+      const sched = (row['Schedule Name'] || '').trim();
+      const dateStr = row['Event Start Date'] || '';
+      const timeStr = (row['Start Time'] || '').trim();
+      const role = (row['Role Title'] || '').trim();
+      const name = (row['Display Name'] || '').trim();
+      const accepted = (row['Accepted'] || '').trim();
+      const dparts = parseAmericanDate(dateStr);
+      if (!sched || !dparts || !timeStr || !role || !name) return;
+      const key = makeKey(sched, dparts.y, dparts.m, dparts.d, timeStr);
+      if (!instancesMap[key]) {
+        instancesMap[key] = {
+          key, sched,
+          dateObj: buildDate(dparts.y, dparts.m, dparts.d, timeStr),
+          timeStr,
+          req: {},
+          assigned: {}
+        };
+        unmatched++;
+      }
+      if (!instancesMap[key].assigned[role]) instancesMap[key].assigned[role] = [];
+      instancesMap[key].assigned[role].push({ name, accepted });
+    });
+
+    instancesArray = Object.values(instancesMap).sort((a, b) => a.dateObj - b.dateObj);
+
+    let statusMsg = `Loaded ${instancesArray.length} Mass instances from ${rolesRows.length + participantsRows.length} rows.`;
+    if (unmatched > 0) statusMsg += ` (${unmatched} participant record(s) had no matching role-requirement row — included anyway.)`;
+    setStatus(statusMsg, false);
+
+    setupStep2();
+  }
+
+  function fmtDateInput(d) {
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function setupStep2() {
+    if (instancesArray.length === 0) return;
+    const minD = instancesArray[0].dateObj;
+    const maxD = instancesArray[instancesArray.length - 1].dateObj;
+    el('startDate').value = fmtDateInput(minD);
+    el('endDate').value = fmtDateInput(maxD);
+    renderMassList(instancesArray);
+    el('step2').style.display = 'block';
+    el('step3').style.display = 'block';
+  }
+
+  function renderMassList(list) {
+    const container = el('massList');
+    container.innerHTML = '';
+    currentVisibleKeys = list.map(i => i.key);
+    list.forEach(inst => {
+      const wrap = document.createElement('label');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.dataset.key = inst.key;
+      const dayLabel = inst.dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const timeLabel = inst.dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      wrap.appendChild(cb);
+      wrap.appendChild(document.createTextNode(`${dayLabel}, ${timeLabel} — ${inst.sched}`));
+      container.appendChild(wrap);
+    });
+  }
+
+  el('rolesFile').addEventListener('change', e => {
+    if (!e.target.files[0]) return;
+    parseCsvFile(e.target.files[0], data => { rolesRows = data; tryBuildInstances(); });
+  });
+  el('participantsFile').addEventListener('change', e => {
+    if (!e.target.files[0]) return;
+    parseCsvFile(e.target.files[0], data => { participantsRows = data; tryBuildInstances(); });
+  });
+
+  el('applyRange').addEventListener('click', () => {
+    const start = new Date(el('startDate').value + 'T00:00:00');
+    const end = new Date(el('endDate').value + 'T23:59:59');
+    const filtered = instancesArray.filter(i => i.dateObj >= start && i.dateObj <= end);
+    renderMassList(filtered);
+  });
+
+  el('selectAll').addEventListener('click', () => {
+    document.querySelectorAll('#massList input[type=checkbox]').forEach(cb => cb.checked = true);
+  });
+  el('selectNone').addEventListener('click', () => {
+    document.querySelectorAll('#massList input[type=checkbox]').forEach(cb => cb.checked = false);
+  });
+
+  // ---- Liturgical week grouping: Saturday PM (noon or later) starts the next week's block ----
+  function weekKeyFor(dateObj) {
+    const dow = dateObj.getDay(); // 0=Sun..6=Sat
+    const daysSinceSat = (dow - 6 + 7) % 7;
+    const satThisWeek = new Date(dateObj);
+    satThisWeek.setHours(0, 0, 0, 0);
+    satThisWeek.setDate(dateObj.getDate() - daysSinceSat);
+    const boundary = new Date(satThisWeek);
+    boundary.setHours(12, 0, 0, 0);
+    if (dateObj >= boundary) return satThisWeek;
+    const prevSat = new Date(satThisWeek);
+    prevSat.setDate(satThisWeek.getDate() - 7);
+    return prevSat;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function buildScheduleHtml(selected, title) {
+    // Determine global role column order
+    const roleSet = new Set();
+    selected.forEach(inst => {
+      Object.keys(inst.req).forEach(r => roleSet.add(r));
+      Object.keys(inst.assigned).forEach(r => roleSet.add(r));
+    });
+    const roles = Array.from(roleSet).sort((a, b) => {
+      const ra = roleRank(a), rb = roleRank(b);
+      if (ra !== rb) return ra - rb;
+      return a.localeCompare(b);
+    });
+
+    // Group by liturgical week
+    const groups = {};
+    selected.forEach(inst => {
+      const wk = weekKeyFor(inst.dateObj).getTime();
+      if (!groups[wk]) groups[wk] = [];
+      groups[wk].push(inst);
+    });
+    const weekKeys = Object.keys(groups).map(Number).sort((a, b) => a - b);
+
+    let anyPending = false;
+    let html = '';
+
+    if (title) html += `<div class="sched-title">${escapeHtml(title)}</div>`;
+    if (selected.length > 0) {
+      const overallStart = selected[0].dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      const overallEnd = selected[selected.length - 1].dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      html += `<div class="sched-subtitle">${overallStart} – ${overallEnd}</div>`;
+    }
+
+    weekKeys.forEach(wk => {
+      const items = groups[wk].sort((a, b) => a.dateObj - b.dateObj);
+      const dmin = items[0].dateObj, dmax = items[items.length - 1].dateObj;
+      const sameMonth = dmin.getMonth() === dmax.getMonth();
+      const label = sameMonth
+        ? `${dmin.toLocaleDateString('en-US', { month: 'long' })} ${dmin.getDate()} – ${dmax.getDate()}`
+        : `${dmin.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${dmax.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;
+
+      html += `<div class="week-block"><div class="week-header">Week of ${label}</div>`;
+      html += `<table class="sched-table"><thead><tr><th>Date / Time / Mass</th>`;
+      roles.forEach(r => { html += `<th>${escapeHtml(shortRoleLabel(r))}</th>`; });
+      html += `</tr></thead><tbody>`;
+
+      items.forEach(inst => {
+        const dayLabel = inst.dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        const timeLabel = inst.dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        html += `<tr><td class="dt-cell">${dayLabel}<br>${timeLabel}<br><em>${escapeHtml(inst.sched)}</em></td>`;
+
+        roles.forEach(role => {
+          const needed = inst.req[role] || 0;
+          const have = (inst.assigned[role] || []).slice();
+          if (needed === 0 && have.length === 0) {
+            html += `<td></td>`;
+            return;
+          }
+          const slots = Math.max(needed, have.length);
+          const lines = [];
+          for (let i = 0; i < slots; i++) {
+            if (have[i]) {
+              let nameHtml = escapeHtml(have[i].name);
+              if (!have[i].accepted) {
+                nameHtml += ` <span class="pending-flag">*</span>`;
+                anyPending = true;
+              }
+              lines.push(nameHtml);
+            } else {
+              lines.push(`<span class="not-filled">NOT FILLED</span>`);
+            }
+          }
+          html += `<td>${lines.join('<br>')}</td>`;
+        });
+        html += `</tr>`;
+      });
+
+      html += `</tbody></table></div>`;
+    });
+
+    if (anyPending) {
+      html += `<div class="legend">* = assignment not yet confirmed/accepted</div>`;
+    }
+
+    return html;
+  }
+
+  const STANDALONE_STYLE_BLOCK = `
+      body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 20px; color:#111; }
+      .sched-title { font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 2px; }
+      .sched-subtitle { text-align: center; margin: 0 0 18px; color: #555; font-size: 13px; }
+      .week-block { margin-bottom: 18px; page-break-inside: avoid; break-inside: avoid; }
+      .week-header { background: #2b3a55; color: #fff; font-weight: 700; padding: 6px 10px; font-size: 13px; border-radius: 4px 4px 0 0; }
+      table.sched-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+      table.sched-table th, table.sched-table td { border: 1px solid #999; padding: 5px 7px; vertical-align: top; text-align: left; }
+      table.sched-table th { background: #eef1f6; }
+      table.sched-table td.dt-cell { white-space: nowrap; font-weight: 600; }
+      .not-filled { color: #b23324; font-style: italic; }
+      .pending-flag { color: #a67c00; }
+      .legend { font-size: 10.5px; color: #666; margin-top: 8px; }
+      @media print {
+        @page { size: landscape; margin: 0.4in; }
+        html, body { margin: 0; padding: 0.2in; }
+        .no-print { display: none; }
+      }
+  `;
+
+  function safeFileName(title) {
+    return title.replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-+|-+$/g, '') || 'ministry-schedule';
+  }
+
+  function buildStandaloneDoc(bodyHtml, title, autoPrint) {
+    const autoPrintScript = autoPrint
+      ? '<scr' + 'ipt>window.addEventListener(\'load\', function(){ setTimeout(function(){ window.print(); }, 350); });</scr' + 'ipt>'
+      : '';
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+<style>${STANDALONE_STYLE_BLOCK}</style>
+</head><body>
+<div class="no-print" style="margin-bottom:16px;">
+  <button onclick="window.print()" style="background:#2b3a55;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;">Print / Save as PDF</button>
+</div>
+${bodyHtml}
+${autoPrintScript}
+</body></html>`;
+  }
+
+  el('generateBtn').addEventListener('click', () => {
+    const checked = Array.from(document.querySelectorAll('#massList input[type=checkbox]:checked')).map(cb => cb.dataset.key);
+    const selected = instancesArray.filter(i => checked.includes(i.key)).sort((a, b) => a.dateObj - b.dateObj);
+    if (selected.length === 0) {
+      alert('Select at least one Mass to include.');
+      return;
+    }
+    const title = el('reportTitle').value.trim();
+    const html = buildScheduleHtml(selected, title);
+    el('previewContainer').innerHTML = html;
+    el('step4').style.display = 'block';
+    el('downloadHtmlBtn').disabled = false;
+    el('downloadPdfBtn').disabled = false;
+    el('downloadHtmlBtn').dataset.html = html;
+    el('downloadHtmlBtn').dataset.title = title || 'Ministry Schedule';
+    el('downloadPdfBtn').dataset.title = title || 'Ministry Schedule';
+  });
+
+  el('downloadHtmlBtn').addEventListener('click', () => {
+    const bodyHtml = el('downloadHtmlBtn').dataset.html;
+    const title = el('downloadHtmlBtn').dataset.title;
+    const doc = buildStandaloneDoc(bodyHtml, title, false);
+    const blob = new Blob([doc], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeFileName(title)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  });
+
+  // PDF is generated via the browser's own print-to-PDF rather than a client-side
+  // rasterizing library: opens the schedule in a new tab and triggers the print dialog,
+  // where the person picks "Save as PDF". This gives crisp vector text and correct
+  // pagination reliably, in contrast to canvas-based renderers which can silently
+  // corrupt long, multi-table layouts.
+  el('downloadPdfBtn').addEventListener('click', () => {
+    const bodyHtml = el('downloadHtmlBtn').dataset.html;
+    const title = el('downloadPdfBtn').dataset.title;
+    const doc = buildStandaloneDoc(bodyHtml, title, true);
+    const blob = new Blob([doc], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  });
+})();
+</script>
+
+</body>
+</html>
