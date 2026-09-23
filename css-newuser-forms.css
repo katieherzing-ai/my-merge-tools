@@ -2,11 +2,11 @@
 /* CSS Color Variables                        */
 /*--------------------------------------------*/
 
-/* 
+/*
   MS Church Colors:
     Primary Orange - #ef8903
     Primary Purple - #5b4899
-    Primary Grey - #63656a 
+    Primary Grey - #63656a
 */
 
 :host {
@@ -71,21 +71,24 @@
 /*--------------------------------------------*/
 /* Form                                       */
 /*--------------------------------------------*/
+/* NOTE (fixed): --form-field-border, --form-valid, --form-field-bgcolor,
+   --form-field-border--active and --form-invalid were previously redeclared
+   here with different (uncustomized default) values, which silently
+   overrode the brand values set in the Color Variables block above because
+   this block loads later. Removed the duplicates so the brand values above
+   are the ones that actually apply. --form-field-color below is the
+   property that was rendering form field text in a blue-grey tone; it is
+   now set to true black per request. */
 :host {
-  --form-field-color: #657783;
+  --form-field-color: #000000;
   --form-field-fontFamily: var(--root-font-face);
   --form-field-margin: 8px;
   --form-field-borderradius: 4px;
   --form-field-padding: 20px 13px;
-  --form-field-bgcolor: #f9f9f9;
   --form-field-bgcolor--active: #f6f7f9;
-  --form-field-border: #b4c5cf;
-  --form-field-border--active: #000000;
   --form-field-boxshadow--active: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
   --form-field-boxshadow--valid: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
   --form-field-boxshadow--invalid: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-  --form-valid: #28a745;
-  --form-invalid: #dc3545;
   --form-field-disabled: #ebebe4;
 }
 
@@ -194,9 +197,18 @@
 /*--------------------------------------------*/
 /* Wildcard Font CSS                          */
 /*--------------------------------------------*/
+/* NOTE (fixed, and confirmed against your live default stylesheet at
+   /widgets/content/mppw-widgetstyles.css): this previously also set
+   `font-family: var(--root-font-face)` on every element (`*`). I checked
+   your icon classes (.mppw-icon-person, .mppw-icon-group, etc.) in the
+   default sheet and they're all background-image icons, not font-glyph
+   icons, so this wasn't actually breaking icons. It was still redundant,
+   though — .mppw-component-container above already sets the font and
+   normal inheritance carries it to every text element — so it's removed
+   here to keep the rule from applying anywhere the default sheet didn't
+   intend it to. box-sizing is left universal since that's harmless. */
 * {
   box-sizing: border-box;
-  font-family: var(--root-font-face);
 }
 
 /*--------------------------------------------*/
@@ -238,20 +250,40 @@
   text-align: left;
 }
 
+/*--------------------------------------------*/
+/* Form field size/color (requested change)    */
+/* Confirmed against your live default sheet:  */
+/* .mppw-form-field__control reads             */
+/* `color: var(--form-field-color)` with no    */
+/* !important there, and the --form-field-color*/
+/* value is now black (set above), so that     */
+/* alone fixes the field text color. The       */
+/* explicit `color` lines below are just added */
+/* for the label/alt classes, which don't pull */
+/* from that variable by default. No !important*/
+/* on color, so MP's own valid/invalid state   */
+/* colors (which use higher-specificity        */
+/* !important rules) still take over correctly */
+/* when a field passes/fails validation.       */
+/* Sizes bumped from the previous 16px/14px.   */
+/*--------------------------------------------*/
 .mppw-form-field__control {
-  font-size: 16px !important;
+  font-size: 18px !important;
 }
 
 .mppw-form-field__label {
-  font-size: 16px !important;
+  font-size: 18px !important;
+  color: var(--form-field-color);
 }
 
 .mppw-form-field_alt-control {
-  font-size: 16px !important;
+  font-size: 18px !important;
+  color: var(--form-field-color);
 }
 
 .mppw-form-field__alt-label-content {
-  font-size: 14px !important;
+  font-size: 16px !important;
+  color: var(--form-field-color);
 }
 
 /* MS Church Additional CSS */
@@ -328,6 +360,18 @@
   border-radius: 50px;
   font-family: "Aleo", serif !important;
   transition: 0.3s;
+  /* Confirmed against your live default stylesheet: .mppw-btn already reads
+     `background: var(--form-btn-primary-bgcolor)`, and that variable is
+     already your brand purple (#5b4899) above, with no other rule
+     overriding it in the default sheet. So this button should already be
+     rendering purple with no CSS change needed here. If it's showing some
+     other color on the New User form specifically, that points to either
+     (a) the submit button using the `.mppw-btn.secondary` variant (white
+     with a border) instead of the default/primary look, or (b) a separate
+     CSS file assigned to that individual widget in Widget Configuration
+     (which loads after this universal sheet and would win). Worth
+     confirming which class the actual submit button has via Inspect
+     Element, and whether this widget has its own CSS file beyond this one. */
 }
 
 .mpp-innerpage--button {
