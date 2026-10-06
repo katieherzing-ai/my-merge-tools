@@ -1,0 +1,329 @@
+/*==============================================================*/
+/* FBC - EVENT DETAILS, REGISTRATION & CUSTOM FORMS             */
+/* Companion to FBC-EventCards.css (that file is ONLY for the   */
+/* Event Finder cards; use this one on Event Details, Event     */
+/* Registration and Custom Form widgets).                       */
+/*                                                              */
+/* Brand (from fbcmtn.thechurchco.com branding CSS):            */
+/*   Maroon       #852e2e   (darkened #5e2121)                  */
+/*   Slate blue   #567b97   (secondary)                         */
+/*   Font         Avenir LT Pro (headings 800, body 400)        */
+/*                                                              */
+/* Structure follows the css-newuser-forms.css pattern: one set */
+/* of variables, centered headings and event image, rounded-    */
+/* free buttons, bigger form text. Each variable is declared    */
+/* ONCE so nothing silently overrides anything else.            */
+/*==============================================================*/
+
+/*--------------------------------------------*/
+/* 1. Brand variables (edit here)             */
+/*--------------------------------------------*/
+:host {
+  /* font */
+  --root-font-face: 'Avenir LT Pro', 'Avenir Next', Avenir, 'Helvetica Neue', Arial, sans-serif;
+  --fbc-heading-weight: 800;
+
+  /* FBC knobs used by the rules below */
+  --fbc-maroon: #852e2e;
+  --fbc-maroon-dark: #5e2121;
+  --fbc-maroon-darker: #471919;
+  --fbc-tint: #f6eded;            /* very light maroon wash */
+  --fbc-radius: 0;                /* 0 = square like the event cards; try 4px for softer */
+  --fbc-btn-radius: 4px;
+  --fbc-image-max: 720px;         /* max width of the event image on the details page */
+
+  /* base text + fields */
+  --root-text-color: #2b2b2b;
+  --root-font-size: 16px;
+  --root-line-height: 26px;
+  --primary: #852e2e;
+  --secondary: #567b97;
+  --form-field-color: #1a1a1a;
+  --form-field-fontFamily: var(--root-font-face);
+  --form-field-bgcolor: #fafafa;
+  --form-field-bgcolor--active: #ffffff;
+  --form-field-border: #c9c3c3;
+  --form-field-border--active: #852e2e;
+  --form-field-boxshadow--active: 0 0 0 0.2rem rgba(133, 46, 46, 0.25);
+  --form-field-borderradius: 4px;
+  --form-field-margin: 8px;
+  --form-field-padding: 20px 13px;
+  --form-field-disabled: #ebebe4;
+
+  /* buttons */
+  --form-btn-primary-text: #ffffff;
+  --form-btn-primary-bgcolor: #852e2e;
+  --form-btn-primary-hover: #5e2121;
+  --form-btn-primary-active: #471919;
+  --form-btn-secondary-text: #852e2e;
+  --form-btn-secondary-bgcolor: #ffffff;
+  --form-btn-secondary-hover: #f6eded;
+  --form-btn-secondary-active: #ecdada;
+  --form-btn-disabled: #9a8f8f;
+
+  /* cards, checkboxes, progress */
+  --card-textColor: #2b2b2b;
+  --card-primaryColor: #852e2e;
+  --card-headerBgColor: #852e2e;
+  --card-imageBgColor: #852e2e;
+  --card-checkboxDefaultColor: #852e2e;
+  --card-labelBgColor: #f3eded;
+  --card-progressBarColor: #852e2e;
+  --card-progressBarActiveColor: linear-gradient(90deg, #852e2e 0%, #aa6d6d 100%);
+  --progress-pledged: #852e2e;
+
+  /* event details / inner pages */
+  --innerPage-textColor: #2b2b2b;
+  --innerPage-fontSize: 18px;
+  --innerPage-lineHeight: 30px;
+  --innerPage-primaryColor: #852e2e;
+  --innerPage-h1fontSize: 44px;
+  --innerPage-h1lineHeight: 52px;
+  --innerPage-h2fontSize: 26px;
+  --innerPage-h2lineHeight: 34px;
+  --innerPage-h3fontSize: 20px;
+  --innerPage-h3lineHeight: 28px;
+  --innerPage-h3color: #852e2e;
+  --innerPage-h4fontSize: 18px;
+  --innerPage-h4lineHeight: 26px;
+  --innerPage-buttonBgColor: #852e2e;
+  --innerPage-buttonHoverBgColor: #5e2121;
+  --innerPage-buttonActiveBgColor: #471919;
+  --innerPage-progressBarColor: #852e2e;
+  --innerPage-progressBarActiveColor: linear-gradient(90deg, #852e2e 0%, #aa6d6d 100%);
+  --innerPage-labelBgColor: #f3eded;
+  --innerPage-labelBgHoverColor: #e9dede;
+  --innerPage-linkColor: #852e2e;
+  --innerPage-linkHoverColor: #5e2121;
+  --innerPage-linkActiveColor: #471919;
+  --innerPage-imageBgColor: #852e2e;
+
+  --component-bgColor: #852e2e;
+}
+
+/*--------------------------------------------*/
+/* 2. Login widget colors (base sheet hard-   */
+/*    codes blue, so it needs real overrides) */
+/*--------------------------------------------*/
+.mppw-login--container,
+.mppw-loggedout--username {
+  color: var(--fbc-maroon);
+}
+
+.mppw-login--container:hover,
+.mppw-login--container:focus,
+.mppw-loggedout--username:hover,
+.mppw-loggedout--username:focus {
+  color: var(--fbc-maroon-dark);
+}
+
+.mppw-login--list-item a:hover,
+.mppw-login--list-item a:focus {
+  background: var(--fbc-tint);
+  color: var(--fbc-maroon);
+}
+
+/*--------------------------------------------*/
+/* 3. Container, font, centered layout        */
+/*--------------------------------------------*/
+.mppw-component-container {
+  font-family: var(--root-font-face);
+  color: var(--root-text-color);
+  margin: 0 auto;
+  max-width: min(900px, 92vw);
+}
+
+/* form controls do not inherit fonts on their own */
+.mppw-component-container input,
+.mppw-component-container select,
+.mppw-component-container textarea,
+.mppw-component-container button {
+  font-family: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/*--------------------------------------------*/
+/* 4. Headings: centered, maroon, Avenir 800  */
+/*--------------------------------------------*/
+.mppw-component-container h1,
+.mppw-component-container h2 {
+  font-family: var(--root-font-face);
+  font-weight: var(--fbc-heading-weight);
+  color: var(--fbc-maroon);
+  text-align: center;
+}
+
+.mppw-component-container h1 {
+  font-size: var(--innerPage-h1fontSize);
+  line-height: var(--innerPage-h1lineHeight);
+}
+
+.mppw-component-container h3,
+.mppw-component-container h4 {
+  font-family: var(--root-font-face);
+  font-weight: var(--fbc-heading-weight);
+}
+
+.titleContainer {
+  text-align: center;
+}
+
+/* sub-headings on the event details page */
+.mpp-innerpage--special-title,
+.mpp-innerpage--capacity-title {
+  font-family: var(--root-font-face);
+  font-weight: var(--fbc-heading-weight);
+  color: var(--fbc-maroon);
+}
+
+/*--------------------------------------------*/
+/* 5. Event details header: image, title,     */
+/*    date - all centered at the top          */
+/*--------------------------------------------*/
+.mpp-innerpage--fixed-imgcontainer {
+  display: block;
+  width: 100% !important;
+  max-width: var(--fbc-image-max);
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto 24px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: var(--fbc-radius);
+  overflow: hidden;
+}
+
+/* events with no image: maroon block with the calendar icon */
+.mpp-innerpage--fixed-imgcontainer.mpp-innerpage--fixed-imgplaceholder {
+  max-width: var(--fbc-image-max);
+  max-height: none;
+  background-color: var(--fbc-maroon);
+  background-size: 96px !important;
+  background-position: center;
+}
+
+.mpp-innerpage--subtitle {
+  text-align: center;
+}
+
+.mpp-innerpage--datetime {
+  justify-content: center;
+  text-align: center;
+}
+
+.mpp-innerpage--datetime-wrapper {
+  text-align: center;
+}
+
+/* keep long description text easy to read */
+.mpp-innerpage p,
+.mpp-innerpage--description {
+  text-align: left;
+}
+
+/* the "back" link */
+.mpp-innerpage--back a {
+  font-weight: 700;
+}
+
+/*--------------------------------------------*/
+/* 6. Buttons                                 */
+/*--------------------------------------------*/
+.mppw-btn {
+  border-radius: var(--fbc-btn-radius);
+  font-family: var(--root-font-face);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.mppw-btn.secondary {
+  background: var(--form-btn-secondary-bgcolor);
+  border: 2px solid var(--fbc-maroon);
+  color: var(--fbc-maroon);
+}
+
+.mppw-btn.secondary:hover,
+.mppw-btn.secondary:focus {
+  background: var(--form-btn-secondary-hover);
+  color: var(--fbc-maroon-dark);
+}
+
+/* Register / action buttons on event details: centered */
+.mpp-innerpage--button {
+  display: table;
+  margin: 16px auto;
+}
+
+/* form submit buttons: centered and comfortably wide */
+.submit--btn {
+  display: block;
+  margin: 24px auto 0;
+  min-width: 220px;
+}
+
+/*--------------------------------------------*/
+/* 7. Form fields: larger text, maroon focus  */
+/*    (!important matches the base sheet's own */
+/*    specificity on these properties)         */
+/*--------------------------------------------*/
+.mppw-form-field__control {
+  font-size: 17px !important;
+}
+
+.mppw-form-field__label {
+  font-size: 17px !important;
+  color: var(--form-field-color);
+}
+
+.mppw-form-field_alt-control {
+  font-size: 17px !important;
+  color: var(--form-field-color);
+}
+
+.mppw-form-field__alt-label-content {
+  font-size: 16px !important;
+  color: var(--form-field-color);
+}
+
+/* the base sheet colors these blue; use the brand maroon */
+.mppw-blue,
+.mppw-form-field_upload-label {
+  color: var(--fbc-maroon);
+}
+
+.mppw-form-field-alt {
+  padding: 10px;
+}
+
+.product-form h3 {
+  margin: 0 !important;
+}
+
+/*--------------------------------------------*/
+/* 8. Mobile                                  */
+/*--------------------------------------------*/
+@media only screen and (max-width: 600px) {
+  .mppw-component-container h1 {
+    font-size: 30px;
+    line-height: 38px;
+  }
+
+  .mppw-component-container h2 {
+    font-size: 21px;
+    line-height: 28px;
+  }
+
+  .mpp-innerpage--fixed-imgcontainer {
+    max-width: 100%;
+  }
+
+  .mpp-innerpage--button,
+  .submit--btn {
+    width: 100%;
+  }
+}
