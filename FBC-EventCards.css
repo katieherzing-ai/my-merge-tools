@@ -1,4 +1,3 @@
-
 /*--------------------------------------------*/
 /* CSS Color Variables                        */
 /*--------------------------------------------*/
@@ -178,8 +177,9 @@
 
 /*==============================================================*/
 /* FBC EVENT FINDER - match fbcmtn.thechurchco.com event cards  */
-/* Maroon section, white 2px-bordered square cards, image on    */
+/* Maroon background, white 2px-bordered square cards, image on */
 /* top, bold white title, regular white date underneath.        */
+/* Selectors verified against the live Event Finder widget code */
 /*==============================================================*/
 
 /* 1. Brand knobs - change these first ------------------------ */
@@ -187,7 +187,8 @@
     /* Font: the site uses Avenir LT Pro (headings 800, body 400) */
     --root-font-face: 'Avenir LT Pro', 'Avenir Next', Avenir, 'Helvetica Neue', Arial, sans-serif;
 
-    --evt-brand: #852e2e;        /* site brand maroon (from the site's branding CSS) */
+    --evt-bg: #852e2e;           /* site brand maroon. Use "transparent" if the page
+                                    section behind the widget is already maroon */
     --evt-text: #ffffff;
     --evt-border: #ffffff;
     --evt-border-width: 2px;
@@ -201,37 +202,46 @@
     --evt-date-size: 18px;
 }
 
-/* 2. Layout: centered wrapping rows, like the site ----------- */
-.mppw-row:has(.mpp-card),
-.mppw-card--grid {
+/* 2. Hide the title + search boxes (Event Finder only) ------- */
+/* The widget still runs its search automatically on load, so  */
+/* events appear without anyone touching the form.             */
+:host(mpp-event-finder) .mppw-form-wrapper {
+    display: none;
+}
+
+/* 3. Background so the cards show on any page ---------------- */
+:host(mpp-event-finder) .mppw-component-container {
+    background: var(--evt-bg);
+    padding: 48px 24px;
+    max-width: none;
+}
+
+/* 4. Layout: centered wrapping rows, like the site ----------- */
+.resultsContainer {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;      /* last row centers, as on the site */
     gap: var(--evt-gap);
     max-width: 1100px;
-    margin: 16px auto 0;
+    margin: 0 auto;
 }
 
-.mppw-row:has(.mpp-card) > .mppw-col,
-.mppw-row:has(.mpp-card) > .mppw-card-wrapper,
-.mppw-card--grid > * {
+.resultsContainer > .mpp-card {
     flex: 0 1 var(--evt-card-width);
     width: var(--evt-card-width);
     max-width: 100%;
-    margin: 0;
 }
 
-/* 3. The card ------------------------------------------------ */
+/* 5. The card ------------------------------------------------ */
 .mpp-card {
-    position: relative;           /* needed for whole-card click */
-    height: 100%;
-    min-height: 100%;
-    background: transparent;      /* shows the section's maroon */
+    position: relative;
+    background: transparent;      /* maroon comes from the container */
     color: var(--evt-text);
     border: var(--evt-border-width) solid var(--evt-border);
     border-radius: var(--evt-radius);
     box-shadow: none;
     overflow: hidden;
+    cursor: pointer;              /* the whole card already links to the event */
     transition: background-color .2s ease;
 }
 
@@ -239,17 +249,32 @@
     background: rgba(255, 255, 255, 0.08);
 }
 
+.mpp-card:focus-within {
+    outline: 2px solid var(--evt-border);
+    outline-offset: 3px;
+}
+
 .mpp-card--header {
     display: block;
     background: none;
 }
 
+/* inline styles on placeholder images need !important to override */
 .mpp-card--image {
     display: block;
-    width: 100%;
-    height: auto;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
     aspect-ratio: var(--evt-image-ratio);
     object-fit: cover;
+}
+
+/* events with no image get a quiet placeholder block */
+img.mpp-card--image[src$="icon-event.svg"] {
+    object-fit: contain;
+    padding: 18%;
+    background: rgba(255, 255, 255, 0.12);
+    box-sizing: border-box;
 }
 
 .mpp-card--body {
@@ -262,8 +287,8 @@
     font-weight: var(--evt-title-weight);
     line-height: 1.2;
     max-height: none;
-    -webkit-line-clamp: unset;
     display: block;
+    -webkit-line-clamp: unset;
 }
 
 .mpp-card--subtitle {
@@ -282,36 +307,17 @@
     display: none;
 }
 
-/* 4. Footer button: invisible, but makes the whole card a link */
+/* 6. "See Details" button: visually hidden but still keyboard-
+      reachable (the card itself is already clickable) ------- */
 .mpp-card--footer {
     padding: 0;
-    height: 0;
 }
 
-.mpp-card--footer .mppw-btn,
-.mpp-card--footer a {
-    background: none;
-    border: 0;
-    box-shadow: none;
-    padding: 0;
-    margin: 0;
-    width: auto;
-    font-size: 0;                 /* hides the button label visually */
-    color: transparent;
-}
-
-.mpp-card--footer .mppw-btn::after,
-.mpp-card--footer a::after {
-    content: '';
+.mpp-card--footer .mppw-btn {
     position: absolute;
-    inset: 0;
-    cursor: pointer;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
-
-/* 5. Optional: only if the widget sits on its own page, not
-      inside the maroon section of the website.
-.mppw-component-container {
-    background: var(--evt-brand);
-    padding: 48px 24px;
-}
-*/
